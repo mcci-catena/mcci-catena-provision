@@ -1,0 +1,756 @@
+/* mcci-load-mote-profile.bri	Tue Aug  2 2016 21:00:35 tmm */
+
+/*
+
+Module:  mcci-load-mote-profile.bri
+
+Function:
+	Load a Microchip LoRa mote with a profile
+
+Version:
+	V1.01a	Tue Aug  2 2016 21:00:35 tmm	Edit level 1
+
+Copyright notice:
+	This file copyright (C) 2016 by
+
+		MCCI Corporation
+		3520 Krums Corners Road
+		Ithaca, NY  14850
+
+	An unpublished work.  All rights reserved.
+	
+	This file is proprietary information, and may not be disclosed or
+	copied without the prior permission of MCCI Corporation.
+ 
+Author:
+	Terry Moore, MCCI Corporation	August 2016
+
+Revision history:
+   1.01a  Tue Aug  2 2016 21:00:35  tmm
+	Module created.
+
+*/
+
+/*
+|| The version number
+*/
+if (!(.VERSION in globals()))
+	VERSION = "V1.01a";
+if (!(.COPYRIGHT in globals()))
+	COPYRIGHT = "Copyright (C) 2005-2008, 2010, MCCI Corporation";
+
+/*
+|| Load MCCI Bright Library -- This can come from environment MCCIBRIGHT_LIB
+|| (conforming to the Windows MCCIConf naming conventions).
+||
+|| Also compatible with the library existing in the current directory or 
+|| already loaded.
+*/
+if(!(.Lib in globals()))
+	{
+	BRIGHTLIB = getenv("MCCIBRIGHT_LIB");
+	MCCIBRIGHTLIB = (BRIGHTLIB == NULL ? "" : BRIGHTLIB .. "/") .. "mcci_v1.bri"
+	local tLib, sError = dofile(MCCIBRIGHTLIB);
+	if (sError != NULL)
+	    {
+	    assert(FALSE,
+		"mcci_v1.bri not found/readable: " .. sError .. ". "..
+		" Set MCCIBRIGHT_LIB to the directory."
+		);
+	    }
+	assert(Lib != NULL, "mcci_v1.bri load failed!")
+	}
+
+/****************************************************************************\
+|
+|		Manifest constants & typedefs.
+|
+|	This is strictly for private types and constants which will not 
+|	be exported.
+|
+\****************************************************************************/
+
+cAPPCONTEXT = Lib.CreateClass(
+	.cAPPCONTEXT,
+	{
+	// count the numer of warnings produced.
+	{ .number,	.nWarnings },
+
+	// count the numer of error messages produced.
+	{ .number,	.nErrors },
+
+	// the filename of the com port.
+	{ .string,	.sComPort },
+
+	// the baud rate.
+	{ .number,	.nBaudRate },
+
+	/* operating mode flags */
+	{ .boolean,	.fVerbose },
+	{ .boolean,	.fDebug },
+	{ .boolean,	.fWerror },
+	});
+
+/****************************************************************************\
+|
+|	Read-only data.
+|
+|	If program is to be ROM-able, these must all be tagged read-only 
+|	using the ROM storage class; they may be global.
+|
+\****************************************************************************/
+
+
+
+/****************************************************************************\
+|
+|	VARIABLES:
+|
+|	If program is to be ROM-able, these must be initialized
+|	using the BSS keyword.  (This allows for compilers that require
+|	every variable to have an initializer.)  Note that only those 
+|	variables owned by this module should be declared here, using the BSS
+|	keyword; this allows for linkers that dislike multiple declarations
+|	of objects.
+|
+\****************************************************************************/
+
+
+
+/*
+
+Name:	cAPPCONTEXT::init()
+
+Function:
+	Initialize the application context object contents.
+
+Definition:
+	function cAPPCONTEXT::init()
+		returns void;
+
+Description:
+	Initialize the application context object and its attributes 
+	with suitable default values.
+
+Returns:
+	No explicit result.
+
+*/
+
+function cAPPCONTEXT::init()
+	{
+	%cAPPCONTEXT::CallParentMethod(.init, self);
+
+	self.nWarnings = 0;
+	self.nErrors = 0;
+	self.fVerbose = FALSE;
+	self.fWerror = FALSE;
+	self.fDebug = FALSE;
+	self.nBaudRate = 57600;
+	}
+
+/****************************************************************************\
+|
+|	helper functions
+|
+\****************************************************************************/
+
+/*
+
+Name:	cAPPCONTEXT::Warning()
+
+Function:
+	Display warning message.
+
+Definition:
+	function cAPPCONTEXT::Warning(...)
+		returns void;
+
+Description:
+	Format the warning message and display it in console.
+
+Returns:
+	No explicit result.
+
+*/
+
+function cAPPCONTEXT::Warning(...)
+	{
+	self.nWarnings = self.nWarnings + 1;
+
+	call(%Lib.Message, arg);
+	}
+
+/*
+
+Name:	cAPPCONTEXT::Error()
+
+Function:
+	Display error message.
+
+Definition:
+	function cAPPCONTEXT::Error(...)
+		returns void;
+
+Description:
+	Format the error message and display it in console.
+
+Returns:
+	No explicit result.
+
+*/
+
+function cAPPCONTEXT::Error(...)
+	{
+	self.nErrors = self.nErrors + 1;
+
+	call(%Lib.Message, arg);
+	}
+
+/*
+
+Name:	cAPPCONTEXT::Fatal()
+
+Function:
+	Display error message and exit.
+
+Definition:
+	function cAPPCONTEXT::Fatal(...)
+		returns void;
+
+Description:
+	Format the error message, display it in console and exit from current
+	process.
+
+Returns:
+	No explicit result.
+
+*/
+
+function cAPPCONTEXT::Fatal(...)
+	{
+	local message = call(format, arg, "x", NULL);
+
+	if (type(message) != "string")
+		message = "(error formatting message)";
+	%Lib.Message("%s", message)
+
+	/* don't call the error handler, but terminate protected processing */
+	%error();
+	}
+
+/*
+
+Name:	cAPPCONTEXT::Debug()
+
+Function:
+	Display debug message.
+
+Definition:
+	function cAPPCONTEXT::Debug(...)
+		returns void;
+
+Description:
+	Format the debug message and display it in console.
+
+Returns:
+	No explicit result.
+
+*/
+
+function cAPPCONTEXT::Debug(...)
+	{
+	if (self.fDebug)
+		call(%Lib.Message, arg);
+	}
+
+/*
+
+Name:	cAPPCONTEXT::Verbose()
+
+Function:
+	Display verbose message.
+
+Definition:
+	function cAPPCONTEXT::Verbose(...)
+		returns void;
+
+Description:
+	Format the verbose message and display it in console.
+
+Returns:
+	No explicit result.
+
+*/
+
+function cAPPCONTEXT::Verbose(...)
+	{
+	if (self.fVerbose)
+		call(%Lib.Message, arg);
+	}
+
+/*
+
+Name:	cAPPCONTEXT::GetNumErrors()
+
+Function:
+	Get the error count.
+
+Definition:
+	function cAPPCONTEXT::GetNumErrors()
+		returns number;
+
+Description:
+	Returns the number of errors occurred. If 'fWerror' option is set, then
+	this method returns the sum of error and warnings occurred during the 
+	process.
+
+Returns:
+	No explicit result.
+
+*/
+
+function cAPPCONTEXT::GetNumErrors()
+	{
+	local nErrors = self.nErrors;
+
+	if (self.fWerror)
+		nErrors = nErrors + self.nWarnings;
+
+	return nErrors;
+	}
+
+
+/*
+
+Name:	cAPPCONTEXT::DoExitChecks()
+
+Function:
+	Display errors, warnings and exit from the process.
+
+Definition:
+	function cAPPCONTEXT::DoExitChecks()
+		returns numbers;
+
+Description:
+	Checks if any error occurred till that point of execution and display
+	the corresponding information regarding the error if any occurred.
+
+Returns:
+	0 if no errors occurred or 1 otherwise.
+
+*/
+
+function cAPPCONTEXT::DoExitChecks()
+	{
+	if (self::GetNumErrors() > 0)
+		{
+		self::Verbose("%d errors detected",
+					gAppContext::GetNumErrors());
+		return 1;
+		}
+	else
+		{
+		self::Verbose("No errors detected");
+		return 0;
+		}
+	}
+
+
+
+{ /* begin scope of sHelp */
+local sHelp =
+[[
+Name:	${PNAME}
+
+Function:
+	Generate the branded files required for a given project.
+
+Synopsis:
+	${PNAME} -[options] {profile-file}
+
+Options:
+	-D	Operate in debug mode.  Causes more output to be produced.
+
+	-v	Operate in verbose mode.
+
+	-baud #
+		specify the baud rate as a number. Default is 57600.
+
+	-port {portname}
+		specify the COM port name. This is system specific.
+
+	-Werror
+		warning messages become error messages.
+
+Description:
+	The script is read from the specified input file.
+	
+	Lines beginning with '#', and blank lines, are ignored.
+
+	Other lines are written to the mote. If the response is "ok", we
+	succeed, if it's anything else, we print it and report an error.
+]];
+
+function main(tArgs)
+	{
+	%Lib.pname = tArgs[0];
+	%Lib.argv = tArgs;
+	%Lib.argv.iArg = 1;
+	local UsgaeFn;
+	local tOpt;
+
+	gAppContext = cAPPCONTEXT();
+
+	gNtddser = %Lib.UseComponent("ntddser");
+
+	tOpt, UsageFn = %Lib.GetFlags(
+		tArgs,
+		"baudrate#,"..
+		"D,"..
+		"help,"..
+		"port*,"..
+		"v,"..
+		"Werror"..
+		":F {script}",
+		/* defaults */
+			{
+			D = FALSE,
+			help = FALSE,
+			v = FALSE,
+			Werror = FALSE,
+
+			/* specific to this tool */
+			baudrate = 57600,
+			port = NULL
+			}
+		);
+
+	/* handle the basic query commands */
+	if (tOpt.help)
+		{
+		write(
+		    _STDERR, 
+		    Lib.ExpandString(
+			%sHelp,
+			{ PNAME = Lib.Basename(%Lib.pname),
+			})
+		     );
+
+		exit(0);
+		}
+
+
+	/* check some values */
+	if (tOpt.port == NULL)
+		{
+		gAppContext::Fatal("must specify -port");
+		}
+
+	gAppContext.sComPort = tOpt.port;
+
+	if (tOpt.baudrate < 9600)
+		{
+		gAppContext::Fatal("baud rate too small: %d", tOpt.baudrate);
+		}
+	else
+		gAppContext.nBaudRate = tOpt.baudrate;
+
+	/* copy the boolean parameters */
+	gAppContext.fDebug = tOpt.D;
+	gAppContext.fVerbose = tOpt.v;
+	gAppContext.fWerror = tOpt.Werror;
+
+	hPort = OpenPort(gAppContext.sComPort);
+	if (hPort == NULL)
+		exit(1);
+
+	CheckComms(hPort);
+
+	for (iArg = %Lib.argv.iArg; iArg < getn(tArgs); iArg = iArg + 1)
+		{
+		DoScript(hPort, tArgs[iArg]);
+		}
+
+	return gAppContext::DoExitChecks();
+	}
+} /* end scope of sHelp */
+
+function OpenPort(sPortName)
+	{
+	if (.Win32 in globals())
+		{
+		local hFile, sError, nError =
+			Win32.CreateFile(
+				sPortName,
+				Win32.GENERIC_READ |
+				Win32.GENERIC_WRITE,
+				/* share mode */ 0,
+				/* security */ NULL,
+				/* creation */ Win32.OPEN_EXISTING,
+				/* attrib */ Win32.FILE_ATTRIBUTE_NORMAL,
+				/* template file */ NULL
+				);
+
+		if (sError != NULL)
+			{
+			gAppContext::Error("Can't open %s: %s(%d)", 
+					sPortName,
+					sError,
+					nError
+					);
+			return NULL;
+			}
+
+		/* initialize the baudrate etc */
+		local BaudRate = gNtddser.cSERIAL_BAUD_RATE(
+					gAppContext.nBaudRate
+					);
+		
+		local fResult, sResult, nError = 
+			Win32.DeviceIoControl(
+				hFile, 
+				Win32.IOCTL_SERIAL_SET_BAUD_RATE,
+				/* input buffer */ BaudRate["*"],
+				/* output buffer size */ 0
+				);
+
+		if (! fResult)
+			{
+			gAppContex::Error("can't set baud rate to %d: %s",
+					gAppContext.nBaudRate,
+					sResult
+					);
+
+			Win32.CloseHandle(hFile);
+			return NULL;
+			}
+			
+		local LineControl = gNtddser.cSERIAL_LINE_CONTROL(
+						Win32.STOP_BIT_1,
+						Win32.NO_PARITY,
+						8
+						);
+		
+		fResult, sResult, nError = 
+			Win32.DeviceIoControl(
+				hFile, 
+				Win32.IOCTL_SERIAL_SET_LINE_CONTROL,
+				/* input buffer */ LineControl["*"],
+				/* output buffer size */ 0
+				);
+
+		if (! fResult)
+			{
+			gAppContext::Error(
+				"can't set line control to n,8,1: %s",
+				sResult
+				);
+
+			Win32.CloseHandle(hFile);
+			return NULL;
+			}
+
+		local Timeouts = gNtddser.cSERIAL_TIMEOUTS();
+		Timeouts.ReadIntervalTimeout = 50;
+		Timeouts.ReadTotalTimeoutConstant = 1000;
+		Timeouts.WriteTotalTimeoutConstant= 1000;
+
+		fResult, sResult, nError = 
+			Win32.DeviceIoControl(
+				hFile, 
+				Win32.IOCTL_SERIAL_SET_TIMEOUTS,
+				/* input buffer */ Timeouts["*"],
+				/* output buffer size */ 0
+				);
+
+		if (! fResult)
+			{
+			gAppContext::Error(
+				"can't set timeouts (%s): %s",
+				Timeouts["*format"],
+				sResult
+				);
+
+			Win32.CloseHandle(hFile);
+			return NULL;
+			}
+
+		return hFile;
+		}
+	else
+		{
+		local hPort, sError = openfile(sPortName, "r+b");
+		if (sError)
+			gAppContext::Error("Can't open %s: %s", sPortName, sError);
+		return hPort;
+		}
+	}
+
+function Win32Purge(hPort)
+	{
+	local PurgeArg = gNtddser.cSERIAL_PURGE_ARG(
+				Win32.SERIAL_PURGE_TXABORT |
+				Win32.SERIAL_PURGE_RXABORT |
+				Win32.SERIAL_PURGE_TXCLEAR |
+				Win32.SERIAL_PURGE_RXCLEAR
+				);
+	local fResult, sResult, nError =
+		Win32.DeviceIoControl(
+			hPort, 
+			Win32.IOCTL_SERIAL_PURGE,
+			/* input buffer */ PurgeARg["*"],
+			/* output buffer size */ 0
+			);
+
+	if (! fResult)
+		{
+		gAppContext::Error("can't purge: %s", sResult);
+		}
+	
+	return fResult, sResult, nError;
+	}
+
+function Win32SendRawCommand(hPort, sCommand)
+	{
+	local fResult, sResult;
+
+	gAppContext::Debug(">>> %s", sCommand);
+	fResult, sResult = Win32.WriteFile(hPort, sCommand .. "\r\n");
+	if (! fResult)
+		{
+		gAppContext::Error("Can't write command: %s", sResult);
+		Win32Purge(hPort);
+
+		return FALSE;
+		}
+
+	fResult, sResult, nError = Win32.ReadFile(hPort, 256);
+	if (! fResult)
+		{
+		gAppContext::Error("error reading response: %s",
+					sResult);
+		return NULL;
+		}
+
+	gAppContext::Debug("<<< %q", sResult);
+	return gsub(sResult, "\r\n$", "");
+	}
+
+function GetVersion(hPort)
+	{
+	local sVersion = Win32SendRawCommand(hPort, "sys get ver");
+	local tResult = { Model=NULL, Version=NULL, Date=NULL };
+
+	gsub(sVersion, "^(%S+) (%S+) (.*)$",
+		function(sModel, sVersion, sDate)
+			{
+			%tResult.Model = sModel;
+			%tResult.Version = sVersion;
+			%tResult.Date = sDate;
+			});
+
+	if (tResult.Model && tResult.Version && tResult.Date)
+		return tResult;
+	else
+		{
+		gAppContext::Error("unrecognized version response: %s",
+					sVersion);
+		return NULL;
+		}
+	}
+
+function GetSysEUI(hPort)
+	{
+	local sEUI = Win32SendRawCommand(hPort, "sys get hweui");
+	local kLenEUI = 64 / 4; /* bits total / bits-per-char => number of char */
+
+	if (strlen(sEUI) != kLenEUI ||
+	    gsub(sEUI, "%x+", "") != "")
+			{
+			gAppContext::Error("unrecognized EUI response: %s", sEUI);
+			return NULL;
+			}
+	else
+		return strupper(sEUI);
+	}
+
+function CheckComms(hPort)
+	{
+	/* do nothing yet */
+	gAppContext::Debug("CheckComms");
+
+	local tVersion = GetVersion(hPort);
+	local sEUI = tVersion != NULL ? GetSysEUI(hPort) : NULL;
+
+	if (tVersion != NULL && sEUI != NULL)
+		{
+		gAppContext::Verbose("\n  MoteType: %s\n  Firmware: %s\n  Date: %s\n  HwEUI: %s",
+			tVersion.Model, tVersion.Version, tVersion.Date,
+			sEUI
+			);
+		return TRUE;
+		}
+	else
+		{
+		gAppContext::Fatal("Didn't recognize mote");
+		return FALSE;
+		}
+	}
+
+function DoScript(hPort, sFileName)
+	{
+	local hFile, sError;
+	local iLine;
+
+	gAppContext::Debug("DoScript: %s", sFileName);
+
+	if (sFileName == "-")
+		hFile = _STDIN;
+	else
+		hFile, sError = openfile(sFileName, "r");
+
+	for (iLine = 1;; iLine = iLine+1)
+		{
+		local sLine, sError = read(hFile, "*l");
+
+		if (sError != NULL)
+			{
+			gAppContext::Error("%s:%u: read error: %s",
+				sFileName, iLine, sError
+				);
+			break;
+			}
+		if (sLine == NULL || sLine == "")
+			break;
+
+		// remove newline
+		sLine = gsub(sLine, "\n$", "");
+
+		// remove comments
+		sLine = gsub(sLine, "^%s*#.*$", "");
+
+		// don't send empty lines
+		if (gsub(sLine, "^%s*$", "") != "")
+			{
+			local sResult = Win32SendRawCommand(
+					hPort, 
+					gsub(sLine, "\n$", "")
+					);
+			if (sResult == "ok")
+				/* all is well */;
+			else
+				{
+				gAppContext::Error("%s:%u: %s: unexpected response: %s",
+					sFileName, iLine, sLine, sResult
+					);
+				
+				closefile(hFile);
+				return FALSE;
+				}
+			}
+		}
+
+	closefile(hFile);
+	return TRUE;
+	}
