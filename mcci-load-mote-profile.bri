@@ -535,7 +535,11 @@ function OpenPort(sPortName)
 		{
 		local hFile, sError, nError =
 			Win32.CreateFile(
-				sPortName,
+				/*
+				|| the //./ prefix is needed for com10, com11 etc, and doesn't
+				|| hurt for com1 through com9.
+				*/
+				"//./" .. sPortName,
 				Win32.GENERIC_READ |
 				Win32.GENERIC_WRITE,
 				/* share mode */ 0,
@@ -827,7 +831,15 @@ function DoScript(hPort, sFileName)
 	if (sFileName == "-")
 		hFile = _STDIN;
 	else
+		{
 		hFile, sError = openfile(sFileName, "r");
+
+		if (sError != NULL)
+			{
+			gAppContext::Error("can't open %s: %s", sFileName, sError);
+			return FALSE;
+			}
+		}
 
 	for (iLine = 1;; iLine = iLine+1)
 		{
