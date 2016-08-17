@@ -3,6 +3,6 @@
 # hardware of the mote; APPEUI is from the -V APPEUI=... switch, APPKEY
 # is from the -V APPKEY=... switch
 #
-mac set deveui ${HWEUI}
+mac set deveui ${SYSEUI}
 mac set appeui ${APPEUI}
 mac set appkey ${APPKEY}

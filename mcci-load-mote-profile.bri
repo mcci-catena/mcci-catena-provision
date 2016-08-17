@@ -94,6 +94,15 @@ cAPPCONTEXT = Lib.CreateClass(
 	{ .boolean,	.fVerbose },
 	{ .boolean,	.fDebug },
 	{ .boolean,	.fWerror },
+	{ .boolean,	.fWriteEnable },
+	{ .boolean, 	.fEcho },
+	{ .boolean, 	.fInfo },
+
+	// variables from -V var=value switch, for use in scripts
+	{ .table,	.tVariables },	
+
+	// version info from initial poll
+	{ .table,	.tVersion },
 	});
 
 /****************************************************************************\
@@ -152,6 +161,10 @@ function cAPPCONTEXT::init()
 	self.fWerror = FALSE;
 	self.fDebug = FALSE;
 	self.nBaudRate = 57600;
+	self.fWriteEnable = TRUE;
+	self.fEcho = FALSE;
+	self.fInfo = FALSE;
+	self.tVariables = {};
 	}
 
 /****************************************************************************\
@@ -361,8 +374,6 @@ function cAPPCONTEXT::DoExitChecks()
 		}
 	}
 
-
-
 { /* begin scope of sHelp */
 local sHelp =
 [[
@@ -377,13 +388,20 @@ Synopsis:
 Options:
 	-D	Operate in debug mode.  Causes more output to be produced.
 
-	-v	Operate in verbose mode.
-
 	-baud #
 		specify the baud rate as a number. Default is 57600.
 
+	-echo
+		echo all device operations.
+
+	-nowrite
+		disable writes to the the device. Useful for testing
+		scripts with -v or -echo
+	
 	-port {portname}
 		specify the COM port name. This is system specific.
+
+	-v	Operate in verbose mode.
 
 	-Werror
 		warning messages become error messages.
@@ -413,9 +431,13 @@ function main(tArgs)
 		tArgs,
 		"baudrate#,"..
 		"D,"..
+		"echo,"..
 		"help,"..
+		"info,"..
 		"port*,"..
+		"V+,"..
 		"v,"..
+		"write,"..
 		"Werror"..
 		":F {script}",
 		/* defaults */
@@ -427,7 +449,11 @@ function main(tArgs)
 
 			/* specific to this tool */
 			baudrate = 57600,
-			port = NULL
+			echo = FALSE,
+			info = FALSE,
+			port = NULL,
+			V = {},
+			write = TRUE
 			}
 		);
 
@@ -461,10 +487,32 @@ function main(tArgs)
 	else
 		gAppContext.nBaudRate = tOpt.baudrate;
 
+	/* copy and validate the -V settings */
+	for iVar=0, getn(tOpt.V)-1 do
+		{
+		local sValue = tOpt.V[iVar];
+		local tSplit = {};
+
+		gsub(sValue, "^([A-Za-z0-9_]+)=(.*)$", 
+			function(sName, sValue)
+				{
+				%tSplit.sName = sName;
+				%tSplit.sValue = sValue;
+				});
+
+		if (! (.sName in tSplit))
+			gAppContext::Fatal("Illegal variable specification: -V %s", sValue);
+
+		gAppContext.tVariables[tSplit.sName] = tSplit.sValue;
+		}
+
 	/* copy the boolean parameters */
 	gAppContext.fDebug = tOpt.D;
 	gAppContext.fVerbose = tOpt.v;
 	gAppContext.fWerror = tOpt.Werror;
+	gAppContext.fEcho = tOpt.echo;
+	gAppContext.fInfo = tOpt.info;
+	gAppContext.fWriteEnable = tOpt.write;
 
 	hPort = OpenPort(gAppContext.sComPort);
 	if (hPort == NULL)
@@ -690,10 +738,23 @@ function CheckComms(hPort)
 
 	if (tVersion != NULL && sEUI != NULL)
 		{
-		gAppContext::Verbose("\n  MoteType: %s\n  Firmware: %s\n  Date: %s\n  HwEUI: %s",
+		gAppContext::Verbose("\n  MoteType: %s\n  Firmware: %s\n  Date: %s\n  SysEUI: %s",
 			tVersion.Model, tVersion.Version, tVersion.Date,
 			sEUI
 			);
+
+		if (gAppContext.fInfo)
+			{
+			write(_STDOUT, 
+				format("MoteType: %s\nFirmware: %s\nDate: %s\nSysEUI: %s\n",
+					tVersion.Model, tVersion.Version, tVersion.Date,
+					sEUI
+					)
+			      );
+			}
+
+		gAppContext.tVariables.SYSEUI = sEUI;
+		gAppContext.tVersion = tVersion;
 		return TRUE;
 		}
 	else
@@ -701,6 +762,59 @@ function CheckComms(hPort)
 		gAppContext::Fatal("Didn't recognize mote");
 		return FALSE;
 		}
+	}
+
+function Expand(sLine)
+	{
+	local sResult;
+
+	sResult = sLine;
+
+	while (TRUE)
+		{
+		local iBegin, iEnd, sPrefix, sWord;
+
+		iBegin, iEnd, sPrefix, sWord = 
+			strfind(sResult, "([^\n$]*)%$(%b{})");
+
+		if (iBegin == NULL)
+			// all matched.
+			break;
+
+		local iFound, jFound, sName, sSep =
+			strfind(sWord, "^{([^:]*):(.*)}$");
+
+		if (! iFound)
+			{
+			iFound, jFound, sName = strfind(sWord, "^{(.*)}$");
+			sSep = "";
+			}
+
+		local sValue;
+		if (! (sName in gAppContext.tVariables))
+			{
+			gAppContext::Error("unknown macro $%s", sWord);
+			sValue = "{" .. sWord .. "}";
+			}
+		else
+			sValue = gAppContext.tVariables[sName];	
+
+		if (sSep != "")
+			gAppContext::Fatal("suffix not implemented: %s", sWord);
+
+		local sSegment = sPrefix..sValue;
+
+		if (iBegin > 0)
+			sResult = strsub(sResult, 0, iBegin - 1) ..
+				  sSegment ..
+				  strsub(sResult, iEnd + 1);
+		else
+			sResult = sSegment ..
+				  strsub(sResult, iEnd + 1);
+		}
+
+	gAppContext::Debug("expansion of '%s': '%s'", sLine, sResult);
+	return sResult;
 	}
 
 function DoScript(hPort, sFileName)
@@ -735,23 +849,34 @@ function DoScript(hPort, sFileName)
 		// remove comments
 		sLine = gsub(sLine, "^%s*#.*$", "");
 
+		// expand variables
+		sLine = Expand(sLine);
+
 		// don't send empty lines
 		if (gsub(sLine, "^%s*$", "") != "")
 			{
-			local sResult = Win32SendRawCommand(
+			if (gAppContext.fEcho)
+				{
+				write(_STDOUT, sLine.."\n");
+				}
+
+			if (gAppContext.fWriteEnable)
+				{
+				local sResult = Win32SendRawCommand(
 					hPort, 
 					gsub(sLine, "\n$", "")
 					);
-			if (sResult == "ok")
-				/* all is well */;
-			else
-				{
-				gAppContext::Error("%s:%u: %s: unexpected response: %s",
-					sFileName, iLine, sLine, sResult
-					);
-				
-				closefile(hFile);
-				return FALSE;
+				if (sResult == "ok")
+					/* all is well */;
+				else
+					{
+					gAppContext::Error("%s:%u: %s: unexpected response: %s",
+						sFileName, iLine, sLine, sResult
+						);
+					
+					closefile(hFile);
+					return FALSE;
+					}
 				}
 			}
 		}
