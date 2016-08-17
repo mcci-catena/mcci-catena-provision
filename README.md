@@ -2,14 +2,14 @@
 Load a profile into a Microchip mote
 
 This program (for Windows only at the moment) loads one or more setting
-scripts into a Microchip RF9503 LoRa Mote. It was primarily developed for
-configuring RF9503's for immediate use with the US915 variant of
+scripts into a Microchip RN2903 LoRa Mote. It was primarily developed for
+configuring RN2903's for immediate use with the US915 variant of
 [The Things Network](https://thethingsnetwork.org). However, the tool can be used for other purposes as desired.
 
 ----
 ## Overview
 
-mcci-load-mote-profile reads one or more scripts containing RF9503 commands, sending each line sequentially to an RF9503 directly connected to the PC via USB, and checking the results. Simple variable substitution allows you to input provisioning information from the command line, if needed.
+mcci-load-mote-profile reads one or more scripts containing RN2903 commands, sending each line sequentially to an RN2903 directly connected to the PC via USB, and checking the results. Simple variable substitution allows you to input provisioning information from the command line, if needed.
 
 Several scripts (`.mot` files, where `mot` is short for "mote") are provided with the package, to perform common tasks. These include:
 
