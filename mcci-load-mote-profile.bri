@@ -37,7 +37,7 @@ Revision history:
 if (!(.VERSION in globals()))
 	VERSION = "V1.01a";
 if (!(.COPYRIGHT in globals()))
-	COPYRIGHT = "Copyright (C) 2005-2008, 2010, MCCI Corporation";
+	COPYRIGHT = "Copyright (C) 2016, MCCI Corporation";
 
 /*
 || Load MCCI Bright Library -- This can come from environment MCCIBRIGHT_LIB
@@ -48,16 +48,21 @@ if (!(.COPYRIGHT in globals()))
 */
 if(!(.Lib in globals()))
 	{
-	BRIGHTLIB = getenv("MCCIBRIGHT_LIB");
-	MCCIBRIGHTLIB = (BRIGHTLIB == NULL ? "" : BRIGHTLIB .. "/") .. "mcci_v1.bri"
-	local tLib, sError = dofile(MCCIBRIGHTLIB);
+	local BRIGHTLIB = getenv("MCCIBRIGHT_LIB");
+	local MCCIBRIGHTLIB_root = (BRIGHTLIB == NULL ? "" : BRIGHTLIB .. "/") .. "mcci_v1.br"
+	// try compiled form
+	local tLib, sError = dofile(MCCIBRIGHTLIB_root .. "o");
 	if (sError != NULL)
-	    {
-	    assert(FALSE,
-		"mcci_v1.bri not found/readable: " .. sError .. ". "..
-		" Set MCCIBRIGHT_LIB to the directory."
-		);
-	    }
+		{
+		tLib, sError = dofile(MCCIBRIGHTLIB.."i");
+		if (sError != NULL)
+	    		{
+	    		assert(FALSE,
+				"mcci_v1.bri not found/readable: " .. sError .. ". "..
+				" Set MCCIBRIGHT_LIB to the directory."
+				);
+			}
+	    	}
 	assert(Lib != NULL, "mcci_v1.bri load failed!")
 	}
 
