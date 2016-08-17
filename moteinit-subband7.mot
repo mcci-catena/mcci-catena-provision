@@ -1,0 +1,79 @@
+#
+# Use this file to configure the mote for subband 7 (US915)
+# It will take a while to download
+#
+# In order for it to take effect, also download mote-save.mot before
+# unplugging the cable. No input parameters.
+#
+mac set ch status 0 off
+mac set ch status 1 off
+mac set ch status 2 off
+mac set ch status 3 off
+mac set ch status 4 off
+mac set ch status 5 off
+mac set ch status 6 off
+mac set ch status 7 off
+mac set ch status 8 off
+mac set ch status 9 off
+mac set ch status 10 off
+mac set ch status 11 off
+mac set ch status 12 off
+mac set ch status 13 off
+mac set ch status 14 off
+mac set ch status 15 off
+mac set ch status 16 off
+mac set ch status 17 off
+mac set ch status 18 off
+mac set ch status 19 off
+mac set ch status 20 off
+mac set ch status 21 off
+mac set ch status 22 off
+mac set ch status 23 off
+mac set ch status 24 off
+mac set ch status 25 off
+mac set ch status 26 off
+mac set ch status 27 off
+mac set ch status 28 off
+mac set ch status 29 off
+mac set ch status 30 off
+mac set ch status 31 off
+mac set ch status 32 off
+mac set ch status 33 off
+mac set ch status 34 off
+mac set ch status 35 off
+mac set ch status 36 off
+mac set ch status 37 off
+mac set ch status 38 off
+mac set ch status 39 off
+mac set ch status 40 off
+mac set ch status 41 off
+mac set ch status 42 off
+mac set ch status 43 off
+mac set ch status 44 off
+mac set ch status 45 off
+mac set ch status 46 off
+mac set ch status 47 off
+mac set ch status 48 on
+mac set ch status 49 on
+mac set ch status 50 on
+mac set ch status 51 on
+mac set ch status 52 on
+mac set ch status 53 on
+mac set ch status 54 on
+mac set ch status 55 on
+mac set ch status 56 off
+mac set ch status 57 off
+mac set ch status 58 off
+mac set ch status 59 off
+mac set ch status 60 off
+mac set ch status 61 off
+mac set ch status 62 off
+mac set ch status 63 off
+# mac set ch status 64 off
+# mac set ch status 65 off
+# mac set ch status 66 off
+# mac set ch status 67 off
+# mac set ch status 68 off
+# mac set ch status 69 off
+# mac set ch status 70 off
+# mac set ch status 71 off
