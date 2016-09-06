@@ -67,7 +67,8 @@ A simple workflow is:
 1. Connect your Mote to your PC with a USB cable.
 2. Get your device's EUI using `mcci-load-mote-profile.bri` and the `-info` option.
 3. Use that EUI to register your device using `ttnctl`.
-4. Run `mcci-load-mote-profile.bri` again with the `moteinit-otaa.mot` script, specifying the AppEUI and the AppKey displayed by `ttnctl`.
+4. Run `mcci-load-mote-profile.bri` again with the `moteinit-otaa.mot` script, specifying the AppEUI and the AppKey displayed by `ttnctl`.  
+5. Last, run `mcci-load-mote-profile.bri` with the `moteinit-sb2.mot` script, so that your device will be configured for subband 2.
 
 Here's an example.
 
@@ -93,15 +94,17 @@ Here's an example.
       AppKey:  0123456789ABCDEF0123456789ABCDEF
            {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF, 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF}
 
+    # ----> be sure to scroll right in the text box to get the entire command that follows:
     $ ./bright mcci-load-mote-profile.bri -port com11 -echo -V APPEUI=70B3D57ED0000852 -V APPKEY=0123456789ABCDEF0123456789ABCDEF moteinit-otaa.mot  mote-save.mot
     mac set deveui 0004A30B001A2B50
     mac set appeui 70B3D57ED0000852
     mac set appkey 0123456789ABCDEF0123456789ABCDEF
     mac save
     
-    $
+    $ ./bright mcci-load-mote-profile.bri -port com11 moteinit-sb2.mot mote-save.mot
 
-There's a short pause while the mote is processing the `mac save` command.  
+There's a short pause while the mote is processing the `mac save` command. There's a longer pause while the mote is
+processing the `moteinit-sb2.mot` script, because there are a lot of commands in that script.
 
 ----
 # Credits
