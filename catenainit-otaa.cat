@@ -1,0 +1,13 @@
+#
+# Configure a Catena for OTAA.  SYSEUI is (normally) read from the
+# hardware of the catena; APPEUI is from the -V APPEUI=... switch, APPKEY
+# is from the -V APPKEY=... switch
+#
+lorawan configure deveui ${SYSEUI}
+lorawan configure appeui ${APPEUI}
+lorawan configure appkey ${APPKEY}
+lorawan configure fcntup 0
+lorawan configure fcntdown 0
+lorawan configure appskey 0
+lorawan configure nwkskey 0
+lorawan configure join 1

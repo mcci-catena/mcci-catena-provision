@@ -1,0 +1,1152 @@
+/*
+
+Module:  mcci-load-catena-profile.bri
+
+Function:
+	Set up an MCCI Catena device over USB.
+
+Version:
+	V1.01a	Tue Aug  2 2016 21:00:35 tmm	Edit level 1
+
+Copyright notice:
+	See accompanying license file.
+
+Author:
+	Terry Moore, MCCI Corporation	August 2016
+
+*/
+
+/*
+|| The version number
+*/
+if (!(.VERSION in globals()))
+	VERSION = "v0.1.1";
+if (!(.COPYRIGHT in globals()))
+	COPYRIGHT = "Copyright (C) 2016-2019, MCCI Corporation";
+
+/*
+|| Load MCCI Bright Library -- This can come from environment MCCIBRIGHT_LIB
+|| (conforming to the Windows MCCIConf naming conventions).
+||
+|| Also compatible with the library existing in the current directory or
+|| already loaded.
+*/
+if(!(.Lib in globals()))
+	{
+	local BRIGHTLIB = getenv("MCCIBRIGHT_LIB");
+	local MCCIBRIGHTLIB_root = (BRIGHTLIB == NULL ? "" : BRIGHTLIB .. "/") .. "mcci_v1.br"
+	// try compiled form
+	local tLib, sError = dofile(MCCIBRIGHTLIB_root .. "o");
+	if (sError != NULL)
+		{
+		tLib, sError = dofile(MCCIBRIGHTLIB.."i");
+		if (sError != NULL)
+	    		{
+	    		assert(FALSE,
+				"mcci_v1.bri not found/readable: " .. sError .. ". "..
+				" Set MCCIBRIGHT_LIB to the directory."
+				);
+			}
+	    	}
+	assert(Lib != NULL, "mcci_v1.bri load failed!")
+	}
+
+/****************************************************************************\
+|
+|	The app class definiton.
+|
+\****************************************************************************/
+
+cAPPCONTEXT = Lib.CreateClass(
+	.cAPPCONTEXT,
+	{
+	// count the numer of warnings produced.
+	{ .number,	.nWarnings },
+
+	// count the numer of error messages produced.
+	{ .number,	.nErrors },
+
+	// the filename of the com port.
+	{ .string,	.sComPort },
+
+	// the baud rate.
+	{ .number,	.nBaudRate },
+
+	/* operating mode flags */
+	{ .boolean,	.fVerbose },
+	{ .boolean,	.fDebug },
+	{ .boolean,	.fWerror },
+	{ .boolean,	.fWriteEnable },
+	{ .boolean, 	.fEcho },
+	{ .boolean, 	.fInfo },
+
+	// variables from -V var=value switch, for use in scripts
+	{ .table,	.tVariables },
+
+	// version info from initial poll
+	{ .table,	.tVersion },
+	});
+
+/*
+
+Name:	cAPPCONTEXT::init()
+
+Function:
+	Initialize the application context object contents.
+
+Definition:
+	function cAPPCONTEXT::init()
+		returns void;
+
+Description:
+	Initialize the application context object and its attributes
+	with suitable default values.
+
+Returns:
+	No explicit result.
+
+*/
+
+function cAPPCONTEXT::init()
+	{
+	%cAPPCONTEXT::CallParentMethod(.init, self);
+
+	self.nWarnings = 0;
+	self.nErrors = 0;
+	self.fVerbose = FALSE;
+	self.fWerror = FALSE;
+	self.fDebug = FALSE;
+	self.nBaudRate = 115200;
+	self.fWriteEnable = TRUE;
+	self.fEcho = FALSE;
+	self.fInfo = FALSE;
+	self.tVariables = {};
+	}
+
+/****************************************************************************\
+|
+|	cAPPCONTEXT method functions
+|
+\****************************************************************************/
+
+/*
+
+Name:	cAPPCONTEXT::Warning()
+
+Function:
+	Display warning message.
+
+Definition:
+	function cAPPCONTEXT::Warning(...)
+		returns void;
+
+Description:
+	Format the warning message and display it in console.
+
+Returns:
+	No explicit result.
+
+*/
+
+function cAPPCONTEXT::Warning(...)
+	{
+	self.nWarnings = self.nWarnings + 1;
+
+	call(%Lib.Message, arg);
+	}
+
+/*
+
+Name:	cAPPCONTEXT::Error()
+
+Function:
+	Display error message.
+
+Definition:
+	function cAPPCONTEXT::Error(...)
+		returns void;
+
+Description:
+	Format the error message and display it in console.
+
+Returns:
+	No explicit result.
+
+*/
+
+function cAPPCONTEXT::Error(...)
+	{
+	self.nErrors = self.nErrors + 1;
+
+	call(%Lib.Message, arg);
+	}
+
+/*
+
+Name:	cAPPCONTEXT::Fatal()
+
+Function:
+	Display error message and exit.
+
+Definition:
+	function cAPPCONTEXT::Fatal(...)
+		returns void;
+
+Description:
+	Format the error message, display it in console and exit from current
+	process.
+
+Returns:
+	No explicit result.
+
+*/
+
+function cAPPCONTEXT::Fatal(...)
+	{
+	local message = call(format, arg, "x", NULL);
+
+	if (type(message) != "string")
+		message = "(error formatting message)";
+	%Lib.Message("%s", message)
+
+	/* don't call the error handler, but terminate protected processing */
+	%error();
+	}
+
+/*
+
+Name:	cAPPCONTEXT::Debug()
+
+Function:
+	Display debug message.
+
+Definition:
+	function cAPPCONTEXT::Debug(...)
+		returns void;
+
+Description:
+	Format the debug message and display it in console.
+
+Returns:
+	No explicit result.
+
+*/
+
+function cAPPCONTEXT::Debug(...)
+	{
+	if (self.fDebug)
+		call(%Lib.Message, arg);
+	}
+
+/*
+
+Name:	cAPPCONTEXT::Verbose()
+
+Function:
+	Display verbose message.
+
+Definition:
+	function cAPPCONTEXT::Verbose(...)
+		returns void;
+
+Description:
+	Format the verbose message and display it in console.
+
+Returns:
+	No explicit result.
+
+*/
+
+function cAPPCONTEXT::Verbose(...)
+	{
+	if (self.fVerbose)
+		call(%Lib.Message, arg);
+	}
+
+/*
+
+Name:	cAPPCONTEXT::GetNumErrors()
+
+Function:
+	Get the error count.
+
+Definition:
+	function cAPPCONTEXT::GetNumErrors()
+		returns number;
+
+Description:
+	Returns the number of errors occurred. If 'fWerror' option is set, then
+	this method returns the sum of error and warnings occurred during the
+	process.
+
+Returns:
+	No explicit result.
+
+*/
+
+function cAPPCONTEXT::GetNumErrors()
+	{
+	local nErrors = self.nErrors;
+
+	if (self.fWerror)
+		nErrors = nErrors + self.nWarnings;
+
+	return nErrors;
+	}
+
+
+/*
+
+Name:	cAPPCONTEXT::DoExitChecks()
+
+Function:
+	Display errors, warnings and exit from the process.
+
+Definition:
+	function cAPPCONTEXT::DoExitChecks()
+		returns numbers;
+
+Description:
+	Checks if any error occurred till that point of execution and display
+	the corresponding information regarding the error if any occurred.
+
+Returns:
+	0 if no errors occurred or 1 otherwise.
+
+*/
+
+function cAPPCONTEXT::DoExitChecks()
+	{
+	if (self::GetNumErrors() > 0)
+		{
+		self::Verbose("%d errors detected",
+					gAppContext::GetNumErrors());
+		return 1;
+		}
+	else
+		{
+		self::Verbose("No errors detected");
+		return 0;
+		}
+	}
+
+/****************************************************************************\
+|
+|	main()
+|
+\****************************************************************************/
+
+{ /* begin scope of sHelp */
+local sHelp =
+[[
+Name:	${PNAME}
+
+Function:
+	Download a configuration to an MCCI Catena 4450 LoRaWAN device.
+
+Synopsis:
+	${PNAME} -[options] {profile-file}
+
+Options:
+	-D	Operate in debug mode.  Causes more output to be produced.
+
+	-baud #
+		specify the baud rate as a number. Default is 115200.
+
+	-echo
+		echo all device operations.
+
+	-nowrite
+		disable writes to the the device. Useful for testing
+		scripts with -v or -echo
+
+	-port {portname}
+		specify the COM port name. This is system specific.
+
+	-v	Operate in verbose mode.
+
+	-Werror
+		warning messages become error messages.
+
+Description:
+	The script is read from the specified input file.
+
+	Lines beginning with '#', and blank lines, are ignored.
+
+	Other lines are written to the mote. If the response is "OK", we
+	succeed, if it's anything else, we print it and report an error.
+]];
+
+function main(tArgs)
+	{
+	%Lib.pname = tArgs[0];
+	%Lib.argv = tArgs;
+	%Lib.argv.iArg = 1;
+	local UsgaeFn;
+	local tOpt;
+
+	gAppContext = cAPPCONTEXT();
+
+	gNtddser = %Lib.UseComponent("ntddser");
+
+	tOpt, UsageFn = %Lib.GetFlags(
+		tArgs,
+		"baudrate#,"..
+		"D,"..
+		"echo,"..
+		"help,"..
+		"info,"..
+		"port*,"..
+		"V+,"..
+		"v,"..
+		"write,"..
+		"Werror"..
+		":F {script}",
+		/* defaults */
+			{
+			D = FALSE,
+			help = FALSE,
+			v = FALSE,
+			Werror = FALSE,
+
+			/* specific to this tool */
+			baudrate = 115200,
+			echo = FALSE,
+			info = FALSE,
+			port = NULL,
+			V = {},
+			write = TRUE
+			}
+		);
+
+	/* handle the basic query commands */
+	if (tOpt.help)
+		{
+		write(
+		    _STDERR,
+		    Lib.ExpandString(
+			%sHelp,
+			{ PNAME = Lib.Basename(%Lib.pname),
+			})
+		     );
+
+		exit(0);
+		}
+
+	/* check some values */
+	if (tOpt.port == NULL)
+		{
+		gAppContext::Fatal("must specify -port");
+		}
+
+	gAppContext.sComPort = tOpt.port;
+
+	if (tOpt.baudrate < 9600)
+		{
+		gAppContext::Fatal("baud rate too small: %d", tOpt.baudrate);
+		}
+	else
+		gAppContext.nBaudRate = tOpt.baudrate;
+
+	/* copy and validate the -V settings */
+	for iVar=0, getn(tOpt.V)-1 do
+		{
+		local sValue = tOpt.V[iVar];
+		local tSplit = {};
+
+		gsub(sValue, "^([A-Za-z0-9_]+)=(.*)$",
+			function(sName, sValue)
+				{
+				%tSplit.sName = sName;
+				%tSplit.sValue = sValue;
+				});
+
+		if (! (.sName in tSplit))
+			gAppContext::Fatal("Illegal variable specification: -V %s", sValue);
+
+		gAppContext.tVariables[tSplit.sName] = tSplit.sValue;
+		}
+
+	/* copy the boolean parameters */
+	gAppContext.fDebug = tOpt.D;
+	gAppContext.fVerbose = tOpt.v;
+	gAppContext.fWerror = tOpt.Werror;
+	gAppContext.fEcho = tOpt.echo;
+	gAppContext.fInfo = tOpt.info;
+	gAppContext.fWriteEnable = tOpt.write;
+
+	hPort = OpenPort(gAppContext.sComPort);
+	if (hPort == NULL)
+		exit(1);
+
+//	print("looping");
+//	x = read(_STDIN, "*l");
+
+	CheckComms(hPort);
+
+	for (iArg = %Lib.argv.iArg; iArg < getn(tArgs); iArg = iArg + 1)
+		{
+		DoScript(hPort, tArgs[iArg]);
+		}
+
+	return gAppContext::DoExitChecks();
+	}
+} /* end scope of sHelp */
+
+/*
+
+Name:	OpenPort
+
+Function:
+	Open and set up a UART port.
+
+Definition:
+	function OpenPort(STRING sPortName) -> HPORT;
+
+Description:
+	This function takes an (operating-system specific) port name, and
+	returns either a non-NULL handle for the port, or NULL. The
+	baudrate is set to gAppContext.nBaudRate, the data format is
+	set to 8 data bits, no parity, one stop bit; and the port is
+	configured suitably for doing non-interactive operations with
+	a device. (For example, on Windows we set the serial timeouts.)
+
+Returns:
+	Opaque handle or port, or NULL. An error message is printed
+	to STDERR in case of errors.
+
+Notes:
+	This inevitably requires that we bypass a lot of the normal
+	I/O system. The handle that is returned can only be used with
+	other serial operations.
+
+*/
+
+function OpenPort(sPortName)
+	{
+	if (.Win32 in globals())
+		{
+		local hFile, sError, nError =
+			Win32.CreateFile(
+				/*
+				|| the //./ prefix is needed for com10, com11 etc, and doesn't
+				|| hurt for com1 through com9.
+				*/
+				"//./" .. sPortName,
+				Win32.GENERIC_READ |
+				Win32.GENERIC_WRITE,
+				/* share mode */ 0,
+				/* security */ NULL,
+				/* creation */ Win32.OPEN_EXISTING,
+				/* attrib */ Win32.FILE_ATTRIBUTE_NORMAL,
+				/* template file */ NULL
+				);
+
+		if (sError != NULL)
+			{
+			gAppContext::Error("Can't open %s: %s(%d)",
+					sPortName,
+					sError,
+					nError
+					);
+			return NULL;
+			}
+
+		/* initialize the baudrate etc */
+		local BaudRate = gNtddser.cSERIAL_BAUD_RATE(
+					gAppContext.nBaudRate
+					);
+
+		local fResult, sResult, nError =
+			Win32.DeviceIoControl(
+				hFile,
+				Win32.IOCTL_SERIAL_SET_BAUD_RATE,
+				/* input buffer */ BaudRate["*"],
+				/* output buffer size */ 0
+				);
+
+		if (! fResult)
+			{
+			gAppContext::Error("can't set baud rate to %d: %s",
+					gAppContext.nBaudRate,
+					sResult
+					);
+
+			Win32.CloseHandle(hFile);
+			return NULL;
+			}
+
+		local LineControl = gNtddser.cSERIAL_LINE_CONTROL(
+						Win32.STOP_BIT_1,
+						Win32.NO_PARITY,
+						8
+						);
+
+		fResult, sResult, nError =
+			Win32.DeviceIoControl(
+				hFile,
+				Win32.IOCTL_SERIAL_SET_LINE_CONTROL,
+				/* input buffer */ LineControl["*"],
+				/* output buffer size */ 0
+				);
+
+		if (! fResult)
+			{
+			gAppContext::Error(
+				"can't set line control to n,8,1: %s",
+				sResult
+				);
+
+			Win32.CloseHandle(hFile);
+			return NULL;
+			}
+
+		local Timeouts = gNtddser.cSERIAL_TIMEOUTS();
+		Timeouts.ReadIntervalTimeout = 50;
+		Timeouts.ReadTotalTimeoutConstant = 1000;
+		Timeouts.WriteTotalTimeoutConstant= 1000;
+
+		fResult, sResult, nError =
+			Win32.DeviceIoControl(
+				hFile,
+				Win32.IOCTL_SERIAL_SET_TIMEOUTS,
+				/* input buffer */ Timeouts["*"],
+				/* output buffer size */ 0
+				);
+
+		if (! fResult)
+			{
+			gAppContext::Error(
+				"can't set timeouts (%s): %s",
+				Timeouts["*format"],
+				sResult
+				);
+
+			Win32.CloseHandle(hFile);
+			return NULL;
+			}
+
+		// set the DTR and RTS state
+		fResult, sResult, nError =
+			Win32.DeviceIoControl(
+				hFile,
+				Win32.IOCTL_SERIAL_SET_DTR,
+				/* input buffer */ NULL,
+				/* output buffer size */ 0
+				);
+
+		if (! fResult)
+			{
+			gAppContext::Error(
+				"can't set DTR: %s",
+				sResult
+				);
+
+			Win32.CloseHandle(hFile);
+			return NULL;
+			}
+
+		fResult, sResult, nError =
+			Win32.DeviceIoControl(
+				hFile,
+				Win32.IOCTL_SERIAL_SET_RTS,
+				/* input buffer */ NULL,
+				/* output buffer size */ 0
+				);
+
+		if (! fResult)
+			{
+			gAppContext::Error(
+				"can't set RTS: %s",
+				sResult
+				);
+
+			Win32.CloseHandle(hFile);
+			return NULL;
+			}
+
+		// discard any pending input (which might have shown up from the device)
+		fResult, sRestul, nError = Win32Purge(hFile);
+		if (! fResult)
+			{
+			gAppContext::Error(
+				"Can't purge data: %s",
+				sResult
+				);
+
+			Win32.CloseHandle(hFile);
+			return NULL;
+			}
+
+		return hFile;
+		}
+	else
+		{
+		local hPort, sError = openfile(sPortName, "r+b");
+		if (sError)
+			gAppContext::Error("Can't open %s: %s", sPortName, sError);
+		return hPort;
+		}
+	}
+
+/*
+
+Name:	Win32Purge
+
+Function:
+	On Windows systems, dump the TX and RX queues.
+
+Definition:
+	function Win32Purge(HPORT hPort)
+		-> BOOL fResult, STRING sResult, NUMBER nError;
+
+Description:
+	On Windows, this function discards the the input and output
+	queues, and cancels any pending operations.
+
+Returns:
+	fResult is TRUE for success, FALSE for failure.
+	sResult is the Win32 error message, or NULL.
+	nError is the Win32 error code, or zero.
+
+*/
+
+function Win32Purge(hPort)
+	{
+	local PurgeArg = gNtddser.cSERIAL_PURGE_ARG(
+				Win32.SERIAL_PURGE_TXABORT |
+				Win32.SERIAL_PURGE_RXABORT |
+				Win32.SERIAL_PURGE_TXCLEAR |
+				Win32.SERIAL_PURGE_RXCLEAR
+				);
+	local fResult, sResult, nError =
+		Win32.DeviceIoControl(
+			hPort,
+			Win32.IOCTL_SERIAL_PURGE,
+			/* input buffer */ PurgeArg["*"],
+			/* output buffer size */ 0
+			);
+
+	if (! fResult)
+		{
+		gAppContext::Error("can't purge: %s", sResult);
+		}
+
+	return fResult, sResult, nError;
+	}
+
+/*
+
+Name:	Win32SendRawCommand()
+
+Function:
+	On Windows systems, send a raw command to the Catena.
+
+Definition:
+	function Win32SendRawCommand(
+		HPORT hPort, STRING sCommand
+		) -> STRING sResult
+		  || NULL, sCode, sMessage;
+
+Description:
+	On Windows, this function sends `sCommand` (followed by a
+	newline) to the port. It then reads up to 1k characters
+	until a timeout occurs (which is one second without
+	a character arriving).  It then tries to parse the normal
+	Catena response which ends either with "\nOK\n" or
+	"\n?<error>\n", where <error> is the message of interest.
+
+Returns:
+	If sResult is non-NULL, then the operation returned OK, and
+	may be considered successful.
+
+	If sResult is NULL, then the operation failed in some way;
+	sCode is the error message. If sMessage is non-NULL, then
+	we got some kind of an error back from the device; otehrwise,
+	we had some kind of communication problem and the error is
+	local.
+
+*/
+
+function Win32SendRawCommand(hPort, sCommand)
+	{
+	local fResult, sResult;
+
+	gAppContext::Debug(">>> %s", sCommand);
+	fResult, sResult = Win32.WriteFile(hPort, sCommand .. "\n");
+	if (! fResult)
+		{
+		gAppContext::Error("Can't write command: %s", sResult);
+		Win32Purge(hPort);
+
+		return NULL, sResult;
+		}
+
+	fResult, sResult, nError = Win32.ReadFile(hPort, 1024);
+	if (! fResult)
+		{
+		gAppContext::Error("error reading response: %s",
+					sResult);
+		return NULL, sResult;
+		}
+
+	gAppContext::Debug("<<< %q", sResult);
+	// normalize the results
+	sResult = gsub(sResult, "\r\n", "\n");
+	sResult = gsub(sResult, "\n\r", "\n");
+	sResult = gsub(sResult, "\r", "\n");
+	//gAppContext::Debug("(normalized) %q", sResult);
+
+	// parse the results.
+	local t = { code="timed out", msg=NULL };
+	gsub(sResult, "^(.*)\n([-a-zA-Z0-9_?]*)\n$",
+		function(msg, code) { %t.msg = msg; %t.code = code; }
+		);
+
+	//gAppContext::Debug("(parsed) code=%q msg=%q", t.code, t.msg);
+
+	if (t.code == "OK")
+		return t.msg;
+	else
+		return NULL, t.code, t.msg;
+	}
+
+/*
+
+Name:	GetVersion()
+
+Function:
+	Get the identity of the attached device.
+
+Definition:
+	function GetVersion(
+		HPORT hPort, STRING sCommand
+		) -> TABLE { STRING .Model; STRING .Version; STRING .Date; }
+		  || NULL;
+
+Description:
+	The device is queried to detect the hardware model,
+	the commandset version, and the reference date for the
+	firmeware.
+
+Returns:
+	A table containing the information.
+
+*/
+
+function GetVersion(hPort)
+	{
+	local sVersion = Win32SendRawCommand(hPort, "system version");
+	local tResult = {  };
+	if (sVersion == NULL)
+		return { Board = "?", PlatformVersion = "?" };
+
+	local sVersionWrap = "\r"..gsub(sVersion, "\n", "\n\r").."\n";
+	gAppContext::Debug("sVersionWrap: %q", sVersionWrap);
+
+	gsub(sVersionWrap,
+		"\r(%S+): ([^\n]*)\n",
+		function(sKey, sValue)
+			{
+			gAppContext::Debug("match: key=%s value=%s", sKey, sValue);
+			%tResult[sKey] = sValue;
+			});
+
+	if ((.Board in tResult) && ("Platform-version" in tResult))
+		return tResult;
+	else
+		{
+		gAppContext::Error("unrecognized version response: %q",
+					sVersion);
+		return NULL;
+		}
+	}
+
+/*
+
+Name:	GetSysEUI()
+
+Function:
+	Get the system EUI for the attached device.
+
+Definition:
+	function GetSysEUI(
+		HPORT hPort, STRING sCommand
+		) -> STRING
+		  || NULL;
+
+Description:
+	The device is queried to get the system EUI, which is returned
+	as a 16-character hex string.
+
+Returns:
+	A table containing the information.
+
+*/
+
+function GetSysEUI(hPort)
+	{
+	local sEUI, code, message = Win32SendRawCommand(hPort, "system configure syseui");
+	local kLenEUI = 64 / 4; /* bits total / bits-per-char => number of nibbles */
+	local kLenEUIStr = kLenEUI + (kLenEUI / 2) - 1;
+
+	if (sEUI == NULL)
+		{
+		gAppContext::Error("error getting syseui: %s", code);
+		return NULL;
+		}
+
+	if (strlen(sEUI) != kLenEUIStr ||
+	    gsub(sEUI, "%x%x%-%x%x%-%x%x%-%x%x%-%x%x%-%x%x%-%x%x%-%x%x", "") != "")
+			{
+			gAppContext::Error("unrecognized EUI response: %s", sEUI);
+			return NULL;
+			}
+	else
+		return strupper(sEUI);
+	}
+
+/*
+
+Name:	CheckComms()
+
+Function:
+	Try to recognize the attached device, and verify that comms are working.
+
+Definition:
+	function CheckComms(
+		HPORT hPort
+		) -> BOOL;
+
+Description:
+	The device is queried to get the system EUI, which is returned
+	as a 16-character hex string, as well as the firmware version.
+
+	${SYSEUI} (aka gAppContext.tVariables.SYSEUI) is set to the
+	fetched syseui.
+
+	gAppContext.tVersion is set to the fetched version.
+
+Returns:
+	A table containing the information.
+
+*/
+
+function CheckComms(hPort)
+	{
+	gAppContext::Debug("CheckComms");
+
+	local tVersion = GetVersion(hPort);
+	local sEUI = tVersion != NULL ? GetSysEUI(hPort) : NULL;
+
+	if (tVersion != NULL && sEUI != NULL)
+		{
+		gAppContext::Verbose("\n  CatenaType: %s\n  Platform Version: %s\n  SysEUI: %s",
+			tVersion.Board, tVersion["Platform-version"],
+			sEUI
+			);
+
+		if (gAppContext.fInfo)
+			{
+			write(_STDOUT,
+				format("CatenaType: %s\nPlatform Version: %s\nSysEUI: %s\n",
+					tVersion.Board, tVersion["Platform-version"],
+					sEUI
+					)
+			      );
+			}
+
+		gAppContext.tVariables.SYSEUI = sEUI;
+		gAppContext.tVersion = tVersion;
+		return TRUE;
+		}
+	else
+		{
+		gAppContext::Fatal("Didn't recognize Catena");
+		return FALSE;
+		}
+	}
+
+/*
+
+Name:	Expand()
+
+Function:
+	Perform macro expansion on a line of text.
+
+Definition:
+	function Expand(STRING sLine) -> STRING sLine;
+
+Description:
+	This function iterates over sLine looking for
+	strings of the form "${name}" or "${name:suffix}".
+	For each such string found, it searches for name
+	in the table of macros. If not found, "{{name}}"
+	(or "{{name:suffix}}") is substituded.
+
+	If ${name} was written, and name was found in the
+	table, name's value is used.  If ${name:suffix} was
+	written, an error is reported; this ensures that
+	":" followed by a suffix is reserved for future
+	use.
+
+Returns:
+	String suitably expanded.
+
+*/
+
+function Expand(sLine)
+	{
+	local sResult;
+
+	sResult = sLine;
+
+	while (TRUE)
+		{
+		local iBegin, iEnd, sPrefix, sWord;
+
+		iBegin, iEnd, sPrefix, sWord =
+			strfind(sResult, "([^\n$]*)%$(%b{})");
+
+		if (iBegin == NULL)
+			// all matched.
+			break;
+
+		local iFound, jFound, sName, sSep =
+			strfind(sWord, "^{([^:]*):(.*)}$");
+
+		if (! iFound)
+			{
+			iFound, jFound, sName = strfind(sWord, "^{(.*)}$");
+			sSep = "";
+			}
+
+		local sValue;
+		if (! (sName in gAppContext.tVariables))
+			{
+			gAppContext::Error("unknown macro $%s", sWord);
+			sValue = "{" .. sWord .. "}";
+			}
+		else
+			sValue = gAppContext.tVariables[sName];
+
+		if (sSep != "")
+			gAppContext::Fatal("suffix not implemented: %s", sWord);
+
+		local sSegment = sPrefix..sValue;
+
+		if (iBegin > 0)
+			sResult = strsub(sResult, 0, iBegin - 1) ..
+				  sSegment ..
+				  strsub(sResult, iEnd + 1);
+		else
+			sResult = sSegment ..
+				  strsub(sResult, iEnd + 1);
+		}
+
+	gAppContext::Debug("expansion of '%s': '%s'", sLine, sResult);
+	return sResult;
+	}
+
+/*
+
+Name:	DoScript()
+
+Function:
+	Perform macro expansion on a line of text.
+
+Definition:
+	function Expand(HPORT hPort, STRING sFileName) -> BOOL;
+
+Description:
+	The file is opened and read line by line.  (The name "-" causes
+	STDIN to be read.)
+
+	Blank lines are ignored. Any text after a '#' character is
+	treated as a comment and discarded. Variables of the form
+	${NAME} are expanded.  Any error causes the script to stop.
+
+Returns:
+	TRUE for script success, FALSE for failure.
+
+Notes:
+	An error message is displayed if the script fails.
+
+*/
+
+function DoScript(hPort, sFileName)
+	{
+	local hFile, sError;
+	local iLine;
+
+	gAppContext::Debug("DoScript: %s", sFileName);
+
+	if (sFileName == "-")
+		hFile = _STDIN;
+	else
+		{
+		hFile, sError = openfile(sFileName, "r");
+
+		if (sError != NULL)
+			{
+			gAppContext::Error("can't open %s: %s", sFileName, sError);
+			return FALSE;
+			}
+		}
+
+	for (iLine = 1;; iLine = iLine+1)
+		{
+		local sLine, sError = read(hFile, "*l");
+
+		if (sError != NULL)
+			{
+			gAppContext::Error("%s:%u: read error: %s",
+				sFileName, iLine, sError
+				);
+			break;
+			}
+		if (sLine == NULL || sLine == "")
+			break;
+
+		// remove newline
+		sLine = gsub(sLine, "\n$", "");
+
+		// remove comments
+		sLine = gsub(sLine, "^%s*#.*$", "");
+
+		// expand variables
+		sLine = Expand(sLine);
+
+		// don't send empty lines
+		if (gsub(sLine, "^%s*$", "") != "")
+			{
+			if (gAppContext.fEcho)
+				{
+				write(_STDOUT, sLine.."\n");
+				}
+
+			if (gAppContext.fWriteEnable)
+				{
+				local sResult, sError, sMessage = Win32SendRawCommand(
+					hPort,
+					gsub(sLine, "\n$", "")
+					);
+				if (sResult != NULL)
+					/* all is well */;
+				else
+					{
+					local sDetails = sMessage ? " Details: "..sMessage : "";
+					gAppContext::Error("%s:%u: %s: unexpected response: %s",
+						sFileName, iLine, sLine, sError .. sDetails
+						);
+
+					closefile(hFile);
+					return FALSE;
+					}
+				}
+			}
+		}
+
+	closefile(hFile);
+	return TRUE;
+	}

@@ -1,5 +1,0 @@
-#
-# download this after downloading other mac configuration scripts; this will write the 
-# data to the EEPROM of the Mote.
-#
-mac save

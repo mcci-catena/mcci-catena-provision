@@ -1,0 +1,9 @@
+#
+# manufacturing configuration for a Catena
+# Assumes SYSEUI and PLATFORMGUID were set on the command line
+#
+system configure syseui ${MFGSYSEUI}
+system configure platformguid ${PLATFORMGUID}
+#
+# configure for mfg test operation
+system configure operatingflags 2

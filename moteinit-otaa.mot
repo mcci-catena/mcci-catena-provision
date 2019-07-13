@@ -1,8 +1,0 @@
-#
-# Configure a mote for OTAA.  HWEUI is (normally) read from the
-# hardware of the mote; APPEUI is from the -V APPEUI=... switch, APPKEY
-# is from the -V APPKEY=... switch
-#
-mac set deveui ${SYSEUI}
-mac set appeui ${APPEUI}
-mac set appkey ${APPKEY}
