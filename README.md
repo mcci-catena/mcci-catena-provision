@@ -73,32 +73,57 @@ A simple workflow is:
 
 1. Connect your Catena to your PC with a USB cable.
 2. Get your device's EUI using `mcci-catena-provision.bri` and the `-info` option.
-3. Use that EUI to register your device using `ttnctl`.
-4. Run `mcci-catena-provision.bri` again with the `catenainit-otaa.cat` script, specifying the AppEUI and the AppKey displayed by `ttnctl`.
-5. Last, run `mcci-catena-provision.bri` with the `catenainit-sb2.cat` script, so that your device will be configured for subband 2.
+3. Use that dev EUI to register your device using the TTN console, or the command line tool `ttnctl` [(available here)](https://www.thethingsnetwork.org/docs/network/cli/quick-start.html).
+4. Run `mcci-catena-provision.bri` again with the `catenainit-otaa.cat` script, specifying the AppEUI and the AppKey obtained in step 3.
 
 Here's an example.
 
 ```console
+$ # get info about the Catena on port 11.
 $ ./bright mcci-catena-provision.bri -port com11 -info
-CatenaType: Catena  Library: 0.9.5
-SysEUI: 0004A30B001A2B50
-$ ttnctl devices register 0004A30B001A2B50
+CatenaType: Catena 4630
+Platform Version: 0.16.0.1
+SysEUI: 0002CC0B001A2B50
+
+$ # check ttnctl version
+$ ttnctl version
+  INFO Got build information                    Branch=master BuildDate=2019-05-21T08:12:24Z Commit=60b8cc50487095cce789df3c2dcc260e07307f10 Version=v2.10.2-dev
+  INFO This is an up-to-date ttnctl build
+
+$ # register the device with the network.
+$ ttnctl devices register device-0002CC0B001A2B50 0002CC0B001A2B50
+  INFO Using Application                        AppEUI=70B3D57ED000F563 AppID=test-do-not-use
   INFO Generating random AppKey...
-  INFO Registered device                       AppKey=0123456789ABCDEF0123456789ABCDEF DevEUI=0004A30B001A2B50
+  INFO Discovering Handler...                   Handler=ttn-handler-us-west
+  INFO Connecting with Handler...               Handler=us-west.thethings.network:1904
+  INFO Registered device                        AppEUI=70B3D57ED000F563 AppID=test-do-not-use AppKey=0123456789ABCDEF0123456789ABCDEF DevEUI=0002CC0B001A2B50 DevID=device-0002cc0b001a2b50
 
-$ ttnctl devices info 0004A30B001A2B50
-Dynamic device:
+# # get the device information
+$ ttnctl devices info device-0002cc0b001a2b50
+  INFO Using Application                        AppEUI=70B3D57ED000F563 AppID=test-do-not-use
+  INFO Discovering Handler...                   Handler=ttn-handler-us-west
+  INFO Connecting with Handler...               Handler=us-west.thethings.network:1904
+  INFO Found device
 
-  AppEUI:  70B3D57ED0000852
-           {0x70, 0xB3, 0xD5, 0x7E, 0xD0, 0x00, 0x08, 0x52}
+  Application ID: test-do-not-use
+       Device ID: device-0002cc0b001a2b50
+       Last Seen: never
 
-  DevEUI:  0004A30B001A2B50
-           {0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x83, 0xFA}
-  AppKey:  0123456789ABCDEF0123456789ABCDEF
-       {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF, 0x01, 0x23, 0x45, 0x67,0x89, 0xAB, 0xCD, 0xEF}
-# ----> be sure to scroll right in the text box to get the entire command thatfollows:
-$ ./bright mcci-catena-provision.bri -port com11 -echo -VAPPEUI=70B3D57ED0000852 -V APPKEY=0123456789ABCDEF0123456789ABCDEF catenainit-otaa.cat
+    LoRaWAN Info:
+
+     AppEUI: 70B3D57ED000F563
+     DevEUI: 0002CC0B001A2B50
+    DevAddr: <nil>
+     AppKey: 0123456789ABCDEF0123456789ABCDEF
+    AppSKey: <nil>
+    NwkSKey: <nil>
+     FCntUp: 0
+   FCntDown: 0
+    Options: FCntCheckEnabled, 32BitFCnt
+
+$ # put the networking info into the device.
+$ # ----> be sure to scroll right in the text box to get the entire command that follows:
+$ ./bright mcci-catena-provision.bri -port com11 -echo -V APPEUI=0002CC0B001A2B50 -V APPKEY=0123456789ABCDEF0123456789ABCDEF catenainit-otaa.cat
 lorawan configure deveui 0004A30B001A2B50
 lorawan configure appeui 70B3D57ED0000852
 lorawan configure appkey 0123456789ABCDEF0123456789ABCDEF
