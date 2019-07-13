@@ -903,7 +903,7 @@ function GetSysEUI(hPort)
 			return NULL;
 			}
 	else
-		return strupper(sEUI);
+		return strupper(gsub(sEUI, "-", ""));
 	}
 
 /*
