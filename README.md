@@ -124,7 +124,7 @@ $ ttnctl devices info device-0002cc0b001a2b50
 $ # put the networking info into the device.
 $ # ----> be sure to scroll right in the text box to get the entire command that follows:
 $ ./bright mcci-catena-provision.bri -port com11 -echo -V APPEUI=0002CC0B001A2B50 -V APPKEY=0123456789ABCDEF0123456789ABCDEF catenainit-otaa.cat
-lorawan configure deveui 0004A30B001A2B50
+lorawan configure deveui 0002CC0B001A2B50
 lorawan configure appeui 70B3D57ED0000852
 lorawan configure appkey 0123456789ABCDEF0123456789ABCDEF
 lorawan configure fcntup 0
