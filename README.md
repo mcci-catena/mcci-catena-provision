@@ -1,23 +1,34 @@
 # mcci-catena-provision
 
-Set up an MCCI Catena over USB
+Set up an MCCI Catena via serial console (USB or regular)
 
-This program (for Windows only at the moment) loads one or more network provisioning scripts into an MCCI Catena device built using the [Catena-Arduino-Platform](https://github.com/mcci-catena/Catena-Arduino-Platform). It was primarily developed for configuring Catenas for use with the US915 variant of [The Things Network](https://thethingsnetwork.org). However, the tool can be used for other purposes as desired.
+This repository contains two programs.
+
+`mcci-catena-provision.bri` (for Windows only at the moment) loads one or more network provisioning scripts into an MCCI Catena device built using the [Catena-Arduino-Platform](https://github.com/mcci-catena/Catena-Arduino-Platform). It was primarily developed for configuring Catenas for use with the US915 variant of [The Things Network](https://thethingsnetwork.org). However, the tool can be used for other purposes as desired.
+
+`provision-ttn.sh` provides a streamlined registration flow when working with The Things Network. It registers the device with the network, then uses `mcci-catena-provision` to load the network-generated application credentials into the Catena.
 
 **Contents:**
 
 <!-- TOC depthFrom:2 -->
 
-- [Overview](#overview)
-- [Usage](#usage)
-- [Catena Script File Syntax](#catena-script-file-syntax)
+- [mcci-catena-provision.bri](#mcci-catena-provisionbri)
+	- [Overview](#overview)
+	- [Usage](#usage)
+	- [Catena Script File Syntax](#catena-script-file-syntax)
 	- [Scripting Reference](#scripting-reference)
-- [Using `catenainit-otaa.cat`](#using-catenainit-otaacat)
+	- [Using `catenainit-otaa.cat`](#using-catenainit-otaacat)
+- [`provision-ttn.sh`](#provision-ttnsh)
+	- [Usage](#usage-1)
+	- [Example](#example)
 - [Credits](#credits)
 
 <!-- /TOC -->
 
-## Overview
+
+## mcci-catena-provision.bri
+
+### Overview
 
 `mcci-catena-provision` reads one or more scripts containing Catena-Arduino-Platform commands, sending each line sequentially to an Catena directly connected to the PC via USB, and checking the results. Simple variable substitution allows you to input provisioning information from the command line, if needed.
 
@@ -25,7 +36,7 @@ Several scripts (`.cat` files, where `cat` is short for "Catena") are provided w
 
 * `catenainit-otaa.cat` -- initialize a Catena for LoRa over-the-air authentication ("OTAA"), using information provided from the command line. See "Using `catenainit-otaa.cat`", below.
 
-## Usage
+### Usage
 
 ```bash
 ./bright mcci-catena-provision.bri -[options] [scripts ...]
@@ -37,7 +48,7 @@ The components of this command may be understood as follows.
 
 `-[options]` may be any of the following. Options are processed left to right. Unless we say otherwise, the rightmost option overrides any previous option setting. Boolean options may be negated using the "no" prefix; so for example write "`-noD`" to explicitly negate any previous `-D` option.
 
-* `-baudrate #` sets the desired baud rate. The default is 57600, which is what the Catena documentation suggests.
+* `-baudrate #` sets the desired baud rate. The default is 115200.
 * `-D` enables debug output to STDERR.
 * `-echo` causes script lines
 * `-help` outputs a brief reference, and exits.
@@ -48,7 +59,7 @@ The components of this command may be understood as follows.
 * `-write` enables writing commands to the Catena. This is the default. `-nowrite` can be used on the command line to cause `mcci-catena-provisions.bri` to go through all the motions (macro expansion, etc) but not download any data to the Catena. This is intended for use when debugging scripts.
 * `-Werror` says that any warning messages should be promoted to errors, resulting in error messages and non-zero exit status.
 
-## Catena Script File Syntax
+### Catena Script File Syntax
 
 Catena script files are processed line by line. Blank lines, and lines beginning with whitespace followed by `#` are treated as comments and ignored.
 
@@ -62,7 +73,7 @@ The special variable `SYSEUI` is always set to the system EUI read from the Cate
 
 The scripting commands are defined by the Catena Arduino Platform -- see this [command summary](https://github.com/mcci-catena/Catena-Arduino-Platform#command-summary).
 
-## Using `catenainit-otaa.cat`
+### Using `catenainit-otaa.cat`
 
 The OTAA script `catenainit-otaa.cat` expects that you will invoke `mcci-catena-provision.bri` with the following `-V` definitions:
 
@@ -76,10 +87,12 @@ A simple workflow is:
 3. Use that dev EUI to register your device using the TTN console, or the command line tool `ttnctl` [(available here)](https://www.thethingsnetwork.org/docs/network/cli/quick-start.html).
 4. Run `mcci-catena-provision.bri` again with the `catenainit-otaa.cat` script, specifying the AppEUI and the AppKey obtained in step 3.
 
-Here's an example.
+This workflow is automated by [`provision-ttnsh`](#provision-ttnsh), desribed below.
+
+Here's an example of manual provisioning.
 
 ```console
-$ # get info about the Catena on port 11.
+$ # get info about the Catena on port com11.
 $ ./bright mcci-catena-provision.bri -port com11 -info
 CatenaType: Catena 4630
 Platform Version: 0.16.0.1
@@ -133,6 +146,60 @@ lorawan configure devaddr 0
 lorawan configure join 1
 
 $
+```
+
+## `provision-ttn.sh`
+
+This script uses [`ttnctl`](https://www.thethingsnetwork.org/docs/network/cli/quick-start.html), the API tool for The Things Network, to automatically register a device.
+
+### Usage
+
+```bash
+provision-ttn.sh -[options] deveui
+```
+
+`-[options]` may be any of the following. Options are processed left to right. Unless we say otherwise, the rightmost option overrides any previous option setting. Boolean options may be negated using the "n" prefix; so for example write "`-nD`" to explicitly negate any previous `-D` option.
+
+* `-a {appid}` selects `{appid}` as the target application ID. If not specified, or if `-a -` is written, then the currently-selected `ttnctl` application is used.
+* `-b {basename}` sets the base name for the device. This is similar to the mass registration option in the TTN consol.
+* `-D` requests debug output.
+* `-h {handler}` specifies the TTN handler associated with this application. The default is `ttn-handler-us-west`.
+* `-p {port}` specifies the comm port for the Catena. On Windows, this must include the `com` prefix.
+* `-s {script}` specifies the `mcci-catena-provision` script to be used for loading the informatino into the Catena.
+
+### Example
+
+```console
+$ ./provision-from-ttnctl.sh  -b iseechange- -a iseechange-01 -s catena-4618-otaa.cat -v -p com20 0002cc0100000346
+CatenaType: Catena 4618
+Platform Version: 0.16.0.1
+SysEUI: 0002CC0100000346
+  INFO Found one EUI "70B3D57ED0011966", selecting that one.
+  INFO Updated configuration                    AppEUI=70B3D57ED0011966 AppID=iseechange-01
+  INFO Using Application                        AppEUI=70B3D57ED0011966 AppID=iseechange-01
+  INFO Generating random AppKey...
+  INFO Discovering Handler...                   Handler=ttn-handler-us-west
+  INFO Connecting with Handler...               Handler=us-west.thethings.network:1904
+  INFO Registered device                        AppEUI=70B3D57ED0011966 AppID=iseechange-01 AppKey={redacted} DevEUI=0002CC0100000346 DevID
+m=iseechange-0002cc0100000346
+provision-from-ttnctl.sh: provisioning Catena
+./mcci-catena-provision.bri: 
+  CatenaType: Catena 4618
+  Platform Version: 0.16.0.1
+  SysEUI: 0002CC0100000346
+system configure syseui 0002CC0100000346
+system configure platformguid b75ed77b-b06e-4b26-a968-9c15f222dfb2
+lorawan configure deveui 0002CC0100000346
+lorawan configure appeui 70B3D57ED0011966
+lorawan configure appkey {redacted}
+lorawan configure devaddr 0
+lorawan configure fcntup 0
+lorawan configure fcntdown 0
+lorawan configure appskey 0
+lorawan configure nwkskey 0
+lorawan configure join 1
+system configure operatingflags 1
+./mcci-catena-provision.bri: No errors detected
 ```
 
 ## Credits
