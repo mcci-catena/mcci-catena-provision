@@ -79,6 +79,7 @@ cAPPCONTEXT = Lib.CreateClass(
 	{ .boolean,	.fWriteEnable },
 	{ .boolean, 	.fEcho },
 	{ .boolean, 	.fInfo },
+	{ .boolean, 	.fPermissive },
 
 	// variables from -V var=value switch, for use in scripts
 	{ .table,	.tVariables },
@@ -396,6 +397,7 @@ function main(tArgs)
 		"echo,"..
 		"help,"..
 		"info,"..
+		"permissive,"..
 		"port*,"..
 		"V+,"..
 		"v,"..
@@ -413,6 +415,7 @@ function main(tArgs)
 			baudrate = 115200,
 			echo = FALSE,
 			info = FALSE,
+			permissive = FALSE,
 			port = NULL,
 			V = {},
 			write = TRUE
@@ -474,6 +477,7 @@ function main(tArgs)
 	gAppContext.fEcho = tOpt.echo;
 	gAppContext.fInfo = tOpt.info;
 	gAppContext.fWriteEnable = tOpt.write;
+	gAppContext.fPermissive = tOpt.permissive;
 
 	hPort = OpenPort(gAppContext.sComPort);
 	if (hPort == NULL)
@@ -482,7 +486,7 @@ function main(tArgs)
 //	print("looping");
 //	x = read(_STDIN, "*l");
 
-	CheckComms(hPort);
+	CheckComms(hPort, gAppContext.fPermissive);
 
 	for (iArg = %Lib.argv.iArg; iArg < getn(tArgs); iArg = iArg + 1)
 		{
@@ -884,7 +888,7 @@ Returns:
 
 */
 
-function GetSysEUI(hPort)
+function GetSysEUI(hPort, fPermissive)
 	{
 	local sEUI, code, message = Win32SendRawCommand(hPort, "system configure syseui");
 	local kLenEUI = 64 / 4; /* bits total / bits-per-char => number of nibbles */
@@ -892,7 +896,11 @@ function GetSysEUI(hPort)
 
 	if (sEUI == NULL)
 		{
-		gAppContext::Error("error getting syseui: %s", code);
+		if (! fPermissive)
+			gAppContext::Error("error getting syseui: %s", code);
+		else
+			gAppContext::Warning("error getting syseui: %s", code);
+
 		return NULL;
 		}
 
@@ -915,7 +923,8 @@ Function:
 
 Definition:
 	function CheckComms(
-		HPORT hPort
+		HPORT hPort,
+		BOOL fPermissive
 		) -> BOOL;
 
 Description:
@@ -932,12 +941,17 @@ Returns:
 
 */
 
-function CheckComms(hPort)
+function CheckComms(hPort, fPermissive)
 	{
 	gAppContext::Debug("CheckComms");
 
 	local tVersion = GetVersion(hPort);
-	local sEUI = tVersion != NULL ? GetSysEUI(hPort) : NULL;
+	local sEUI = tVersion != NULL ? GetSysEUI(hPort, fPermissive) : NULL;
+
+	if (tVersion != NULL && sEUI == NULL && fPermissive)
+		{
+		sEUI = "{syseui-not-set}";
+		}
 
 	if (tVersion != NULL && sEUI != NULL)
 		{
@@ -960,9 +974,9 @@ function CheckComms(hPort)
 		gAppContext.tVersion = tVersion;
 		return TRUE;
 		}
-	else
+	else if (tVersion != NULL && sEUI == NULL)
 		{
-		gAppContext::Fatal("Didn't recognize Catena");
+		gAppContext::Fatal("SysEUI not set");
 		return FALSE;
 		}
 	}
