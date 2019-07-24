@@ -169,7 +169,7 @@ _debug "Get info"
 
 # select app
 if [[ "$OPTAPPID" != "-" ]]; then
-	_debug "Selecting app"
+	_verbose "Selecting app -- be patient..."
 	$TTNCTL application select "$OPTAPPID" || _fatal "error selecting app"
 else
 	_verbose "Using default TTN app"
