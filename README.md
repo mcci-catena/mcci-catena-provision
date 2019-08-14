@@ -4,29 +4,42 @@ Set up an MCCI Catena via serial console (USB or regular)
 
 This repository contains two programs.
 
-`mcci-catena-provision.bri` (for Windows only at the moment) loads one or more network provisioning scripts into an MCCI Catena device built using the [Catena-Arduino-Platform](https://github.com/mcci-catena/Catena-Arduino-Platform). It was primarily developed for configuring Catenas for use with the US915 variant of [The Things Network](https://thethingsnetwork.org). However, the tool can be used for other purposes as desired.
+`mcci-catena-provision.bri` (for Windows only at the moment) loads one or more network provisioning scripts into an MCCI Catena device built using the [Catena-Arduino-Platform](https://github.com/mcci-catena/Catena-Arduino-Platform). It was primarily developed for configuring Catena boards for use with the [The Things Network](https://thethingsnetwork.org). However, the tool can be used for other purposes as desired.
 
 `provision-ttn.sh` provides a streamlined registration flow when working with The Things Network. It registers the device with the network, then uses `mcci-catena-provision` to load the network-generated application credentials into the Catena.
 
 **Contents:**
 
-<!-- TOC depthFrom:2 -->
+<!--
+  This TOC uses the VS Code markdown TOC extension AlanWalk.markdown-toc.
+  We strongly recommend updating using VS Code, the markdown-toc extension and the
+  bierner.markdown-preview-github-styles extension. Note that if you are using
+  VS Code 1.29 and Markdown TOC 1.5.6, https://github.com/AlanWalk/markdown-toc/issues/65
+  applies -- you must change your line-ending to some non-auto value in Settings>
+  Text Editor>Files.  `\n` works for me.
+-->
+<!-- markdownlint-disable MD033 MD004 -->
+<!-- markdownlint-capture -->
+<!-- markdownlint-disable -->
+<!-- TOC depthFrom:2 updateOnSave:true -->
 
-- [mcci-catena-provision.bri](#mcci-catena-provisionbri)
+- [`mcci-catena-provision.bri`](#mcci-catena-provisionbri)
 	- [Overview](#overview)
 	- [Usage](#usage)
 	- [Catena Script File Syntax](#catena-script-file-syntax)
 	- [Scripting Reference](#scripting-reference)
 	- [Using `catenainit-otaa.cat`](#using-catenainit-otaacat)
 - [`provision-ttn.sh`](#provision-ttnsh)
-	- [Usage](#usage-1)
+	- [Usage: `provision-ttn.sh`](#usage-provision-ttnsh)
+	- [Environment Variables](#environment-variables)
 	- [Example](#example)
 - [Credits](#credits)
 
 <!-- /TOC -->
+<!-- markdownlint-restore -->
+<!-- Due to a bug in Markdown TOC, the table is formatted incorrectly if tab indentation is set other than 4. Due to another bug, this comment must be *after* the TOC entry. -->
 
-
-## mcci-catena-provision.bri
+## `mcci-catena-provision.bri`
 
 ### Overview
 
@@ -53,10 +66,10 @@ The components of this command may be understood as follows.
 * `-echo` causes script lines
 * `-help` outputs a brief reference, and exits.
 * `-info` outputs information about the Catena to STDOUT. This is intended to be used without any script files, in order to get information about the Catena being programmed.
-* `-port` _portname_ selects the COM port to be used. It should usually be of the form `com1`, `com2`, etc. You can use Windows Device Manager > Ports (Com & LPT) to get a list of available ports.
+* `-port` _`portname`_ selects the COM port to be used. _`Portname`_ should usually be of the form `com1`, `com2`, etc. You can use Windows Device Manager > Ports (Com & LPT) to get a list of available ports.
 * `-V` _name_=_value_ defines a variable named _name_, which can subsequently be used in script files (see "Script File Syntax", below). __This option is cumulative__. You may use it many times to define different variables.
 * `-v` selects verbose mode. Additional messages are logged to STDERR.
-* `-write` enables writing commands to the Catena. This is the default. `-nowrite` can be used on the command line to cause `mcci-catena-provisions.bri` to go through all the motions (macro expansion, etc) but not download any data to the Catena. This is intended for use when debugging scripts.
+* `-write` enables writing commands to the Catena. This is the default. `-nowrite` can be used on the command line to cause `mcci-catena-provisions.bri` to go through all the motions (macro expansion, etc.) but not download any data to the Catena. This is intended for use when debugging scripts.
 * `-Werror` says that any warning messages should be promoted to errors, resulting in error messages and non-zero exit status.
 
 ### Catena Script File Syntax
@@ -87,7 +100,7 @@ A simple workflow is:
 3. Use that dev EUI to register your device using the TTN console, or the command line tool `ttnctl` [(available here)](https://www.thethingsnetwork.org/docs/network/cli/quick-start.html).
 4. Run `mcci-catena-provision.bri` again with the `catenainit-otaa.cat` script, specifying the AppEUI and the AppKey obtained in step 3.
 
-This workflow is automated by [`provision-ttnsh`](#provision-ttnsh), desribed below.
+This workflow is automated by [`provision-ttnsh`](#provision-ttnsh), described below.
 
 Here's an example of manual provisioning.
 
@@ -152,7 +165,7 @@ $
 
 This script uses [`ttnctl`](https://www.thethingsnetwork.org/docs/network/cli/quick-start.html), the API tool for The Things Network, to automatically register a device.
 
-### Usage
+### Usage: `provision-ttn.sh`
 
 ```bash
 provision-ttn.sh -[options] deveui
@@ -164,13 +177,18 @@ provision-ttn.sh -[options] deveui
 * `-b {basename}` sets the base name for the device. This is similar to the mass registration option in the TTN consol.
 * `-D` requests debug output.
 * `-h {handler}` specifies the TTN handler associated with this application. The default is `ttn-handler-us-west`.
-* `-p {port}` specifies the comm port for the Catena. On Windows, this must include the `com` prefix.
-* `-s {script}` specifies the `mcci-catena-provision` script to be used for loading the informatino into the Catena.
+* `-p {port}` specifies the com port for the Catena. On Windows, this must include the `com` prefix.
+* `-s {script}` specifies the `mcci-catena-provision` script to be used for loading the information into the Catena.
+* `-v` requests verbose logging.
+
+### Environment Variables
+
+`TTNCTL`, if set, gives the full pathname of the `ttnctl` executable image. If `TTNCTL` is not set, `ttnctl` must be available on the current PATH.
 
 ### Example
 
 ```console
-$ ./provision-from-ttnctl.sh  -b iseechange- -a iseechange-01 -s catena-4618-otaa.cat -v -p com20 0002cc0100000346
+$ ./provision-ttn.sh  -b iseechange- -a iseechange-01 -s catena-4618-otaa.cat -v -p com20 0002cc0100000346
 CatenaType: Catena 4618
 Platform Version: 0.16.0.1
 SysEUI: 0002CC0100000346
@@ -183,7 +201,7 @@ SysEUI: 0002CC0100000346
   INFO Registered device                        AppEUI=70B3D57ED0011966 AppID=iseechange-01 AppKey={redacted} DevEUI=0002CC0100000346 DevID
 m=iseechange-0002cc0100000346
 provision-from-ttnctl.sh: provisioning Catena
-./mcci-catena-provision.bri: 
+./mcci-catena-provision.bri:
   CatenaType: Catena 4618
   Platform Version: 0.16.0.1
   SysEUI: 0002CC0100000346
