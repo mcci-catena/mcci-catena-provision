@@ -1,10 +1,10 @@
 #
-# Configure a Catena 4618 in production. DEVEUI is from the -V DEVEUI=
+# Configure a Catena 4610 in production. DEVEUI is from the -V DEVEUI=
 # switch; APPEUI is from the -V APPEUI=... switch, APPKEY
 # is from the -V APPKEY=... switch
 #
 system configure syseui ${DEVEUI}
-system configure platformguid b75ed77b-b06e-4b26-a968-9c15f222dfb2
+system configure platformguid 53-ca-09-4b-b8-88-46-5e-aa-0e-e3-06-4e-c5-6d-21
 lorawan configure deveui ${DEVEUI}
 lorawan configure appeui ${APPEUI}
 lorawan configure appkey ${APPKEY}
