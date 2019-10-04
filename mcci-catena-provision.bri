@@ -80,6 +80,7 @@ cAPPCONTEXT = Lib.CreateClass(
 	{ .boolean, 	.fEcho },
 	{ .boolean, 	.fInfo },
 	{ .boolean, 	.fPermissive },
+	{ .number,	.nTxDelayMs },
 
 	// variables from -V var=value switch, for use in scripts
 	{ .table,	.tVariables },
@@ -361,8 +362,14 @@ Options:
 		disable writes to the the device. Useful for testing
 		scripts with -v or -echo
 
+	-permissive
+		Don't give up if SYSEUI isn't set.
+
 	-port {portname}
 		specify the COM port name. This is system specific.
+
+	-txdelay {ms}
+		delay approximately {ms} milliseconds between chars.
 
 	-v	Operate in verbose mode.
 
@@ -393,6 +400,7 @@ function main(tArgs)
 	tOpt, UsageFn = %Lib.GetFlags(
 		tArgs,
 		"baudrate#,"..
+		"txdelay#,"..
 		"D,"..
 		"echo,"..
 		"help,"..
@@ -417,6 +425,7 @@ function main(tArgs)
 			info = FALSE,
 			permissive = FALSE,
 			port = NULL,
+			txdelay = 0,
 			V = {},
 			write = TRUE
 			}
@@ -478,6 +487,7 @@ function main(tArgs)
 	gAppContext.fInfo = tOpt.info;
 	gAppContext.fWriteEnable = tOpt.write;
 	gAppContext.fPermissive = tOpt.permissive;
+	gAppContext.nTxDelayMs = tOpt.txdelay;
 
 	hPort = OpenPort(gAppContext.sComPort);
 	if (hPort == NULL)
@@ -772,12 +782,70 @@ Returns:
 
 */
 
+function GetOutputQueue(hPort)
+	{
+	local fResult, sResult, nError =
+		Win32.DeviceIoControl(
+			hPort,
+			Win32.IOCTL_SERIAL_GET_COMMSTATUS,
+			/* input buffer */ NULL,
+			/* output buffer size */ gNtddser.cSERIAL_STATUS.size()
+			);
+
+	if (! fResult)
+		return fResult, sError;
+
+	return gNtddser.cSERIAL_STATUS.NewFromBuffer(sResult).AmountInOutQueue;
+	}
+
+function PutChar(hPort, sChar)
+	{
+	local fResult, sResult = Win32.WriteFile(hPort, sChar);
+
+	if (! fResult)
+		return fResult, sRestult;
+
+	if (strlen(sChar) == 0)
+		return TRUE;
+
+	for (;;)
+		{
+		fResult, sResult = GetOutputQueue(hPort);
+		if (fResult == NULL)
+			return fResult, sResult;
+		if (fResult == 0)
+			break;
+		}
+
+	return TRUE;
+	}
+
+function WriteFileWithDelay(hPort, sCommand)
+	{
+	if (gAppContext.nTxDelayMs <= 0)
+		{
+		return Win32.WriteFile(hPort, sCommand);
+		}
+
+	for i = 0, strlen(sCommand)-1 do
+		{
+		local fResult, sResult = PutChar(hPort, strsub(sCommand, i, i));
+		if (! fResult)
+			return fResult, sResult;
+
+		// this is about 1ms
+		for i = 0, gAppContext.nTxDelayMs * 1e-3 * (1e9/6.7) do {}
+		}
+
+	return TRUE;
+	}
+
 function Win32SendRawCommand(hPort, sCommand)
 	{
 	local fResult, sResult;
 
 	gAppContext::Debug(">>> %s", sCommand);
-	fResult, sResult = Win32.WriteFile(hPort, sCommand .. "\n");
+	fResult, sResult = WriteFileWithDelay(hPort, sCommand .. "\n");
 	if (! fResult)
 		{
 		gAppContext::Error("Can't write command: %s", sResult);
