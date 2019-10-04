@@ -122,6 +122,7 @@ function cAPPCONTEXT::init()
 	self.fWriteEnable = TRUE;
 	self.fEcho = FALSE;
 	self.fInfo = FALSE;
+	self.fPermissive = FALSE;
 	self.tVariables = {};
 	}
 
