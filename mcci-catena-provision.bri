@@ -1119,7 +1119,7 @@ function DoScript(hPort, sFileName)
 				);
 			break;
 			}
-		if (sLine == NULL || sLine == "")
+		if (sLine == NULL)
 			break;
 
 		// remove newline
