@@ -21,6 +21,9 @@ readonly PDIR="$(dirname "$0")"
 typeset -i OPTDEBUG=0
 typeset -i OPTVERBOSE=0
 
+readonly MCCIBRIGHT_LIB="${PDIR}"
+export MCCIBRIGHT_LIB
+
 ##############################################################################
 # verbose output
 ##############################################################################
@@ -148,7 +151,7 @@ if [[ $# -lt 1 ]]; then
 fi
 
 #### verify that it looks like a deveui
-if ./bright -c "D='X$1' ; if (gsub(D, '^X'.. strrep('%x', 16) .. '$', '') != '') exit(1);" ; then
+if "${PDIR}/bright" -c "D='X$1' ; if (gsub(D, '^X'.. strrep('%x', 16) .. '$', '') != '') exit(1);" ; then
 	true
 else
 	_fatal "not a valid deveui: $1"
@@ -165,7 +168,7 @@ fi
 
 # get info from the device
 _debug "Get info"
-./bright ./mcci-catena-provision.bri -info -permissive -port "${OPTPORT}" || _fatal "can't get info from device on com port $OPTPORT"
+${PDIR}/bright ${PDIR}/mcci-catena-provision.bri -info -permissive -port "${OPTPORT}" || _fatal "can't get info from device on com port $OPTPORT"
 
 # select app
 if [[ "$OPTAPPID" != "-" ]]; then
@@ -217,4 +220,4 @@ fi
 #### now for testing, just display the switch values.
 _debug "Parse result: " $SWITCHES
 _verbose provisioning Catena
-./bright ./mcci-catena-provision.bri -port ${OPTPORT:-com1} -permissive -echo -v -V DEVEUI=$1 $SWITCHES "${OPTSCRIPT}" || _fatal "Provisioning failed"
+${PDIR}/bright ${PDIR}/mcci-catena-provision.bri -port ${OPTPORT:-com1} -permissive -echo -v -V DEVEUI=$1 $SWITCHES "${OPTSCRIPT}" || _fatal "Provisioning failed"
