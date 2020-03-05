@@ -1,5 +1,5 @@
 #
-# Configure a Catena 4617 in production. DEVEUI is from the -V DEVEUI=
+# Configure a Catena 4630 in production. DEVEUI is from the -V DEVEUI=
 # switch; APPEUI is from the -V APPEUI=... switch, APPKEY
 # is from the -V APPKEY=... switch
 #
