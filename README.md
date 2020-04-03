@@ -40,6 +40,12 @@ This repository contains two programs.
     - [Using `mcci-catena-provision.py`](#using-mcci-catena-provisionpy)
     - [Catena Script File](#catena-script-file)
     - [Example (`mcci-catena-provision.py`)](#example-mcci-catena-provisionpy)
+  - [`mcci-catena-provision-helium.py`](#mcci-catena-provision-heliumpy)
+    - [Required](#required-1)
+    - [Notes](#notes-1)
+    - [Using `mcci-catena-provision-helium.py`](#using-mcci-catena-provision-heliumpy)
+    - [Catena Script File](#catena-script-file-1)
+    - [Example (`mcci-catena-provision-helium.py`)](#example-mcci-catena-provision-heliumpy)
   - [Credits](#credits)
 
 <!-- /TOC -->
@@ -403,6 +409,175 @@ DoScript: catenainit-otaa.cat
 <<< OK
 
 Port /dev/cu.usbmodem621 closed
+No errors detected
+
+```
+
+## `mcci-catena-provision-helium.py`
+
+This script communicates with catena to get information for register it in Helium network via Helium console cli, then it loads the catena script to device for complete the provisioning process.
+
+### Required
+
+* Python 3.* (Installation steps [here](https://realpython.com/installing-python/))
+* Install Python packages [pyserial](https://pyserial.readthedocs.io/en/latest/pyserial.html#installation) and [pexpect](https://pexpect.readthedocs.io/en/stable/install.html) using following commands in terminal/command prompt:
+  1. `pip install pyserial`
+  2. `pip install pexpect`
+* Helium console CLI. Download it [here](https://github.com/helium/helium-console-cli/releases)
+* Catena Script File (It should be placed in the same repository as the script)
+
+### Notes
+
+1. You need to chose a directory for this script and supporting materials.
+If you use `git clone`, you'll specify the target directory; if you download
+the zip file from git, then you'll need to choose a place to unpack the
+files.
+
+2. Once the files are unpacked, you'll also need to get some additional
+files, in particular `helium-console-cli`. You can put this on your executable path, but
+the easiest thing is to put it in the same directory as the script.
+
+3. The first time you use the CLI, you will need to provide an API key. To create an 
+account key, go to your [profile](https://console.helium.com/profile) on 
+Helium Console. From the top right corner, click: `Account -> Profile`. From there, 
+you may generate a key with a specific name and role. The key will only display once. 
+The first time you run the provisioning script, it will prompt you for this key. It 
+will save the key in a local file: `.helium-console-config.toml`.
+
+### Using `mcci-catena-provision-helium.py`
+
+```bash
+python mcci-catena-provision-helium.py -[options]
+```
+
+`-[options]` may be any of the following:
+
+* `-D` - enables debug output.
+* `-port` - selects the COM port to be used. For Example: `-port COM11` (windows) or `-port /dev/tty*` (linux) or `-port /dev/cu.*` (Mac)
+* `-baud` - sets the desired baud rate. The default is 115200.
+* `-info` - outputs information about the Catena to STDOUT.
+* `-v` - selects verbose mode.
+* `-V` - name=value defines a variable named name, which can subsequently be used in ttnctl application configuration. This option is cumulative. You may use it many times to define different variables. For example, `-V APPEUI=000A000100000047 APPKEY=CB67C92DD5898D07872224202DED7E77 BASENAME=mycatena4470-`
+* `-echo` - causes script lines.
+* `-nowrite` - disable writing commands from script file to the Catena.
+* `-s` - specifies the mcci-catena-provision script to be used for loading the information into the Catena.
+* `-Werror` - says that any warning messages should be promoted to errors, resulting in error messages and non-zero exit status.
+
+### Catena Script File
+
+A number of provisioning scripts are provided for setting up Catenas; the
+files are named as `{script}.cat`. If your Catena has already been set up at
+the factory, you can use `catena-otaa.cat`.  Here are the scripts by name
+and function:
+
+* `catenainit-otaa.cat` - Configure a Catena for OTAA
+* `catena-4610-base-otaa.cat` - Configure a Catena 4610 in production
+* `catena-4617-otaa.cat` - Configure a Catena 4617 in production
+* `catena-4618-otaa.cat` - Configure a Catena 4618 in production
+* `catena-4630-otaa.cat` - Configure a Catena 4630 in production
+
+The scripts conventionally get information from variables that are set up
+by you or by the script. The variables are:
+
+* `BASENAME` - The base name to be used for devices. This must be a legal
+DNS-like name (letters, digits and dashes). The device EUI is appended to
+the name. If you want a dash as a separator between the basename and the
+DEVEUI, you must end the basename value with a dash.
+* `APPEUI` - The Application EUI is a unique 64 bit identifier for the application on the network.
+* `DEVEUI` - The device EUI is a unique 64 bit identifier for the end-device on the network.
+* `APPKEY` - The App key is a unique 128 bit identifier which used to secure the communication between the device and the network. It is only known by the device and by the application.
+
+### Example (`mcci-catena-provision-helium.py`)
+
+```console
+python mcci-catena-provision-helium.py -D -port COM25 -V APPEUI=000A000100000047 APPKEY=CB67C92DD5898D07872224202DED7E77 BASENAME=catena4470- -s catenainit-otaa.cat
+
+Port COM25 opened
+>>> system echo off
+
+<<< system echo off
+OK
+
+CheckComms
+>>> system version
+
+<<< Board: Catena 4470
+Platform-Version: 0.17.0.50
+Arduino-LoRaWAN-Version: 0.6.0.20
+Arduino-LMIC-Version: 3.0.99.5
+MCCIADK-Version: 0.2.1
+MCCI-Arduino-BSP-Version: 2.1.0
+OK
+
+>>> system configure syseui
+
+<<< 00-02-cc-01-00-00-01-93
+OK
+using light sleep
+
+HELIUM COMMAND: helium-console-cli device create 000A000100000047 CB67C92DD5898D07872224202DED7E77 0002CC0100000193 catena4470-0002cc0100000193
+HELIUM - Device Registered:
+ Device {
+    app_eui: "000A000100000047",
+    app_key: "CB67C92DD5898D07872224202DED7E77",
+    dev_eui: "0002CC0100000193",
+    id: "1d4b7fcd-3a61-40a3-93d0-7b50642648d9",
+    name: "catena4470-0002cc0100000193",
+    organization_id: "542a0c22-248c-423a-ad29-30a58e68543d",
+    oui: 1,
+}
+
+HELIUM COMMAND: helium-console-cli device get 000A000100000047 CB67C92DD5898D07872224202DED7E77 0002CC0100000193
+HELIUM - Device Info:
+ Device {
+    app_eui: "000A000100000047",
+    app_key: "CB67C92DD5898D07872224202DED7E77",
+    dev_eui: "0002CC0100000193",
+    id: "1d4b7fcd-3a61-40a3-93d0-7b50642648d9",
+    name: "catena4470-0002cc0100000193",
+    organization_id: "542a0c22-248c-423a-ad29-30a58e68543d",
+    oui: 1,
+}
+
+APPEUI: 000A000100000047
+DEVEUI: 0002CC0100000193
+APPKEY: CB67C92DD5898D07872224202DED7E77
+
+Device Created Successfully
+DoScript: catenainit-otaa.cat
+>>> lorawan configure deveui 0002CC0100000193
+
+<<< OK
+
+>>> lorawan configure appeui 000A000100000047
+
+<<< OK
+
+>>> lorawan configure appkey CB67C92DD5898D07872224202DED7E77
+
+<<< OK
+
+>>> lorawan configure fcntup 0
+
+<<< OK
+
+>>> lorawan configure fcntdown 0
+
+<<< OK
+
+>>> lorawan configure appskey 0
+
+<<< OK
+
+>>> lorawan configure nwkskey 0
+
+<<< OK
+
+>>> lorawan configure join 1
+
+<<< OK
+
+Port COM25 closed
 No errors detected
 
 ```
