@@ -478,7 +478,7 @@ def heliumcomms(**dVarArgs):
 
         :param **dVarArgs: helium config info in dict
 
-        :return: AppEUI, DevEUI, AppKey
+        :return: True if success else None
         
         '''
         
@@ -590,6 +590,7 @@ def heliumcomms(**dVarArgs):
         if (dAppeui == oAppContext.dVariables['APPEUI']) and \
         (dAppKey == oAppContext.dVariables['APPKEY']) and \
         (dDeveui == oAppContext.dVariables['SYSEUI']):
+                oAppContext.dVariables['DEVEUI'] = dDeveui
                 return True
         else:
                 return None
