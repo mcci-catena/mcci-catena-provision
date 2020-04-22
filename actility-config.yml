@@ -1,0 +1,17 @@
+# Configuration fields and values
+token_config:
+  grant_type: client_credentials
+  client_id: <tpe_client_id>
+  client_secret: <password>
+  renewToken: false
+  validityPeriod: infinite
+token_generated:
+  access_token: <token_value>
+request_url:
+  get_token: https://thingparkenterprise.eu.actility.com/thingpark/dx/admin/latest/api/oauth/token
+  device_info: https://thingparkenterprise.eu.actility.com/thingpark/dx/core/latest/api/devices/
+  get_routes: https://thingparkenterprise.eu.actility.com/thingpark/dx/core/latest/api/routes/
+device:
+  profile_id:
+  - LORA/GenericA.1revB_IN865_Rx2-SF12
+  - LORA/GenericC.1revB_IN865_Rx2-SF12
