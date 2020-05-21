@@ -31,6 +31,8 @@ class AppContext:
                 self.fWriteEnable = True
                 self.fEcho = False
                 self.fInfo = False
+                self.fPermissive = False
+                self.fRegister = False
                 self.dVariables = {'APPEUI': None,
                                    'DEVEUI': None,
                                    'APPKEY': None,
@@ -315,14 +317,14 @@ def getversion():
                 return None
 
 
-def getsyseui():
+def getsyseui(fPermissive):
         '''
         Get the system EUI for the attached device.
 
         The device is queried to get the system EUI, which is returned as a
         16-character hex string.
 
-        :Parameters: NA
+        :Parameters fPermissive: boolean value
 
         :return: A dict containing the system EUI info; None if error occurs
         
@@ -334,14 +336,16 @@ def getsyseui():
 
         sEUI = writecommand(sEuiCommand)
 
-        if (type(sEUI) is tuple) and (sEUI[0] is None) and (
-                'not initialized' in sEUI[2]):
-                oAppContext.verbose("SysEUI not initialized")
-                return None
-        elif (type(sEUI) is tuple) and (sEUI[0] is None):
-                oAppContext.error("Error getting syseui: {}"
-                                        .format(sEUI[1])
-                                        )
+        if (type(sEUI) is tuple) and (sEUI[0] is None):
+                if not fPermissive:
+                        oAppContext.error("Error getting syseui: {}"
+                                                .format(sEUI[1])
+                                                )
+                else:
+                        oAppContext.warning("Error getting syseui: {}"
+                                                .format(sEUI[1])
+                                                )
+
                 return None
 
         hexmatch = re.match(r'^(([0-9A-Fa-f]{2})-){7}([0-9A-Fa-f]{2})', sEUI)
@@ -357,7 +361,7 @@ def getsyseui():
                 return sEUI
 
 
-def checkcomms():
+def checkcomms(fPermissive):
         '''
         Try to recognize the attached device, and verify that comms are
         working.
@@ -370,7 +374,7 @@ def checkcomms():
 
         oAppContext.tVersion is set to the fetched version
 
-        :Parameters: NA
+        :Parameters fPermissive: boolean value
 
         :return: A dict containing the information; True if success or False if
         fails
@@ -382,11 +386,11 @@ def checkcomms():
         tVersion = getversion()
 
         if tVersion is not None:
-                sEUI = getsyseui()
+                sEUI = getsyseui(fPermissive)
         else:
                 sEUI = None
 
-        if (tVersion is not None) and (sEUI is None):
+        if (tVersion is not None) and (sEUI is None) and fPermissive:
                 sEUI = '{syseui-not-set}'
 
         if (tVersion is not None) and (sEUI is not None):
@@ -778,6 +782,16 @@ if __name__ == '__main__':
                                default=True,
                                dest='writeEnable',
                                help='Disable writes to the device')
+        optparser.add_argument('-permissive',
+                               action='store_true',
+                               default=False,
+                               dest='permissive',
+                               help='Don\'t give up if SYSEUI isn\'t set.')
+        optparser.add_argument('-r',
+                               action='store_true',
+                               default=False,
+                               dest='register',
+                               help='Registers the device in helium network')
         optparser.add_argument('-Werror',
                                action='store_true',
                                default=False,
@@ -839,6 +853,8 @@ if __name__ == '__main__':
         oAppContext.fEcho = opt.echo
         oAppContext.fWriteEnable = opt.writeEnable
         oAppContext.fInfo = opt.info
+        oAppContext.fPermissive = opt.permissive
+        oAppContext.fRegister = opt.register
 
         hPort = openport(oAppContext.sPort)
         if not hPort:
@@ -846,7 +862,7 @@ if __name__ == '__main__':
 
         #Turn off echo, before start provisioning
         setechooff() 
-        checkcomms()
+        checkcomms(oAppContext.fPermissive)
 
         listDirContent = os.listdir(pDir)
         heliumCli = [True for dirfile in listDirContent
@@ -858,7 +874,7 @@ if __name__ == '__main__':
                                  .format(pDir)
                                  ) 
 
-        if opt.vars and opt.script:
+        if oAppContext.fRegister:
                 heliumcommResult = heliumcomms(
                         **oAppContext.dVariables)
                 
@@ -870,6 +886,8 @@ if __name__ == '__main__':
                 oAppContext.verbose("Vars Dict:\n {}"
                                   .format(oAppContext.dVariables)
                                   )
+
+        if opt.script:
                 doscript(opt.script[0])
 
         cResult = closeport(oAppContext.sPort)
