@@ -221,7 +221,7 @@ def writecommand(sCommand):
 
         oAppContext.debug(">>> {}".format(sCommand))
 
-        if not comPort.in_waiting is 0:
+        if comPort.in_waiting != 0:
                 comPort.reset_input_buffer()
 
         try:
@@ -1040,10 +1040,10 @@ if __name__ == '__main__':
 
         listDirContent = os.listdir(pDir)
         configFile = [True for dirfile in listDirContent
-                     if dirfile == 'actility-token-config.yml']
+                     if dirfile == 'actility-config.yml']
 
         if not configFile:
-               oAppContext.fatal("actility-token-config.yml not found; \
+               oAppContext.fatal("actility-config.yml not found; \
                add to path: {}"
                                  .format(pDir)
                                  ) 
@@ -1069,7 +1069,7 @@ if __name__ == '__main__':
                         accessToken = tokenResult['access_token']
                         yData['token_generated']['access_token'] = accessToken
 
-                        with open('actility-token-config.yml', 'w') as wf:
+                        with open('actility-config.yml', 'w') as wf:
                                 yaml.dump(yData, wf)
                 else:
                         accessToken = yData['token_generated']['access_token']
