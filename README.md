@@ -263,13 +263,13 @@ files.
 files, in particular `ttnctl`. You can put this on your executable path, but
 the easiest thing is to put it in the same directory as the script.
 
-3. When you get ttnctl, it will have a very long name specific  to your
+3. When you get ttnctl, it will have a very long name specific to your
 operating system (like `ttnctl-windows-amd64.exe` on 64-bit Windows). Copy
 or rename the file to `ttnctl.exe` (on Windows) or `ttnctl` (on macOS and
 Linux).
 
-4. You'll need to log in to the TTN console using `ttnctl user login
-[ttnctl access code]`. Get the access code from [account.thethingsnetwork.org](https://account.thethingsnetwork.org/)
+4. You'll need to log in to the TTN console from command terminal using `ttnctl user login
+<ttnctl_access_code>`. Get the access code from [account.thethingsnetwork.org](https://account.thethingsnetwork.org/)
 
 ### Using `mcci-catena-provision.py`
 
@@ -287,7 +287,7 @@ python mcci-catena-provision.py -[options]
 * `-V` - name=value defines a variable named name, which can subsequently be used in ttnctl application configuration. This option is cumulative. You may use it many times to define different variables. For example, `-V APPID=mycatena4450 BASENAME=mycatena4450- HANDLERID=ttn-handler-eu`
 * `-echo` - causes script lines.
 * `-nowrite` - disable writing commands from script file to the Catena.
-* `-permissive` - don't give up if SYSEUI isn't set
+* `-permissive` - helps to set SYSEUI, if it isn't set
 * `-r` - register the device in ttn network
 * `-s` - specifies the mcci-catena-provision script to be used for loading the information into the Catena.
 * `-Werror` - says that any warning messages should be promoted to errors, resulting in error messages and non-zero exit status.
@@ -325,9 +325,9 @@ valid handler values were "ttn-handler-eu" and  "ttn-handler-us-west".
 ### Example (`mcci-catena-provision.py`)
 
 ```console
-python3 mcci-catena-provision.py -D -port /dev/cu.usbmodem621 -r -V APPID=myloracat-test BASENAME=myloracat-test- HANDLERID=ttn-handler-eu -s catenainit-otaa.cat
+python mcci-catena-provision.py -D -port COM25 -permissive -r -V APPID=myloracat-test BASENAME=myloracat-test- HANDLERID=ttn-handler-eu -s catenainit-otaa.cat
 
-Port /dev/cu.usbmodem621 opened
+Port COM25 opened
 CheckComms
 >>> system version
 
@@ -416,7 +416,7 @@ DoScript: catenainit-otaa.cat
 
 <<< OK
 
-Port /dev/cu.usbmodem621 closed
+Port COM25 closed
 No errors detected
 
 ```
@@ -462,7 +462,7 @@ python mcci-catena-provision-actility.py -[options]
 * `-V` - name=value defines a variable named name, which can subsequently be used in ttnctl application configuration. This option is cumulative. You may use it many times to define different variables. For example, `-V APPEUI=000A000100000047 APPKEY=0123456789ABCDEF0123456789ABCDEF BASENAME=mycatena4470- MODEL=LORA/GenericA.1revB_IN865_Rx2-SF12 APPID=mcci_chennai_mqtt_server`
 * `-echo` - causes script lines.
 * `-nowrite` - disable writing commands from script file to the Catena.
-* `-permissive` - don't give up if SYSEUI isn't set
+* `-permissive` - helps to set SYSEUI, if it isn't set
 * `-r` - register the device in actility network
 * `-s` - specifies the mcci-catena-provision script to be used for loading the information into the Catena.
 * `-Werror` - says that any warning messages should be promoted to errors, resulting in error messages and non-zero exit status.
@@ -494,7 +494,7 @@ DEVEUI, you must end the basename value with a dash.
 ### Example (`mcci-catena-provision-actility.py`)
 
 ```
-python mcci-catena-provision-actility.py -D -port COM25 -r -V BASENAME=catprov- APPEUI=70B3D53260000246 APPKEY=0123456789ABCDEF0123456789ABCDEF MODEL=LORA/GenericA.1revB_IN865_Rx2-SF12 APPID=mcci_chennai_mqtt_server -s catenainit-otaa.cat
+python mcci-catena-provision-actility.py -D -port COM25 -permissive -r -V BASENAME=catprov- APPEUI=70B3D53260000246 APPKEY=0123456789ABCDEF0123456789ABCDEF MODEL=LORA/GenericA.1revB_IN865_Rx2-SF12 APPID=mcci_chennai_mqtt_server -s catenainit-otaa.cat
 
 Port COM25 opened
 >>> system echo off
@@ -609,7 +609,7 @@ python mcci-catena-provision-helium.py -[options]
 * `-V` - name=value defines a variable named name, which can subsequently be used in ttnctl application configuration. This option is cumulative. You may use it many times to define different variables. For example, `-V APPEUI=000A000100000047 APPKEY=0123456789ABCDEF0123456789ABCDEF BASENAME=mycatena4470-`
 * `-echo` - causes script lines.
 * `-nowrite` - disable writing commands from script file to the Catena.
-* `-permissive` - don't give up if SYSEUI isn't set
+* `-permissive` - helps to set SYSEUI, if it isn't set
 * `-r` - register the device in helium network
 * `-s` - specifies the mcci-catena-provision script to be used for loading the information into the Catena.
 * `-Werror` - says that any warning messages should be promoted to errors, resulting in error messages and non-zero exit status.
@@ -641,7 +641,7 @@ DEVEUI, you must end the basename value with a dash.
 ### Example (`mcci-catena-provision-helium.py`)
 
 ```console
-python mcci-catena-provision-helium.py -D -port COM25 -r -V APPEUI=000A000100000047 APPKEY=0123456789ABCDEF0123456789ABCDEF BASENAME=catena4470- -s catenainit-otaa.cat
+python mcci-catena-provision-helium.py -D -port COM25 -permissive -r -V APPEUI=000A000100000047 APPKEY=0123456789ABCDEF0123456789ABCDEF BASENAME=catena4470- -s catenainit-otaa.cat
 
 Port COM25 opened
 >>> system echo off
