@@ -1,12 +1,13 @@
 import os
 import re
 import sys
+import json
 import serial
-import pexpect
+import requests
 import argparse
 import subprocess
+import ruamel.yaml
 
-from pexpect import fdpexpect
 from serial.tools import list_ports
 
 class AppContext:
@@ -34,12 +35,14 @@ class AppContext:
                 self.fPermissive = False
                 self.fRegister = False
                 self.dVariables = {'APPEUI': None,
+                                   'APPKEY': None,
                                    'DEVEUI': None,
                                    'APPKEY': None,
                                    'APPID' : None,
                                    'BASENAME' : None,
-                                   'HANDLERID' : None,
-                                   'SYSEUI' : None
+                                   'SYSEUI' : None,
+                                   'MODEL': None,
+                                   'DEVEUI': None,
                                    }
         
 
@@ -218,7 +221,7 @@ def writecommand(sCommand):
 
         oAppContext.debug(">>> {}".format(sCommand))
 
-        if not comPort.in_waiting is 0:
+        if comPort.in_waiting != 0:
                 comPort.reset_input_buffer()
 
         try:
@@ -422,177 +425,353 @@ def checkcomms(fPermissive):
                 return False
 
 
-def writettncommand(tCmd):
+def verify_response(rType, stat, resp):
         '''
-        Transer ttnctl command and receive result.
+        It will verify the response of API result whether it is success or not
 
-        This function sends `tCmd` to the ttnctl cli, then reads the result. It
-        checks the return code number, if it is 0 send result or send error
-        message otherwise.
+        :param rType: request type
+        :param stat: response code
+        :param resp: api result
 
-        :param tCmd: ttnctl command
+        :return: True if success
 
-        :return: ttnctl result if success, None if failure
-        
         '''
+        requestType = rType
+        responseCode = stat
+        apiResponse = resp
 
-        ttncmd = tCmd
-        oAppContext.debug("TTN COMMAND: {}".format(' '.join(ttncmd)))
-
-        sResult = subprocess.Popen(ttncmd,
-                                        stdin = subprocess.PIPE,
-                                        stdout = subprocess.PIPE,
-                                        stderr = subprocess.PIPE
-                                        )
-        
-        tResult = pexpect.fdpexpect.fdspawn(sResult.stdout.fileno())
-
-        try:
-                index = tResult.expect('> ')
-                if index == 0:
-                        flag = 0
-                        msg = (tResult.before).decode()
-                        oAppContext.debug("TTNCTL RESULT:\n {}"
-                                          .format(msg)
-                                          )
-                        opt = input()
-                        opt = str(opt)
-                        sResult.stdin.write(opt.encode())
-                        ttnResult, err = sResult.communicate()
-        except Exception:
-                flag = 1
-                msg = (tResult.before).decode()
-                oAppContext.verbose("TTNCTL RESULT:\n {}".format(msg))
-                ttnResult, err = sResult.communicate()
-
-        if (sResult.returncode == 0) and flag == 0:
-                return ttnResult
-        elif (sResult.returncode == 0) and flag == 1:
-                return msg
+        if requestType == 'get_token' and responseCode == 200:
+                oAppContext.verbose(
+                        "\nResponse Code: {}\n".format(responseCode)
+                        )
+        elif requestType == 'create_device' and responseCode == 201:
+                oAppContext.verbose(
+                        "\nResponse Code: {}\n".format(responseCode)
+                        )
+        elif requestType == 'get_req' and responseCode == 200:
+                oAppContext.verbose(
+                        "\nResponse Code: {}\n".format(responseCode)
+                        )
         else:
-                return None
+                oAppContext.verbose(
+                        "\nResponse Code: {}\n".format(responseCode)
+                        )
+                oAppContext.verbose(
+                        "\nResponse: \n{}\n".format(apiResponse)
+                        )
+                oAppContext.fatal("Error: API Requset Failed")
+
+        return True
 
 
-def ttncomms(**dVarArgs):
+def get_request(url, header):
         '''
-        Send ttnctl commands and receives information to config catena
+        It will perform GET request
 
-        This function checks for information in dict to send it to ttnctl cli.
-        It then sends command and receives registered device info from ttnctl.
-        Parse the results and store it in dict to use it later in script lines.
-
-        :param **dVarArgs: ttnctl config info in dict
-
-        :return: AppEUI, DevEUI, AppKey
+        :param url: request url
+        :param header: header information
         
+        :return: return API response if success
+
         '''
         
-        devInfo = {}
-        dAppeui = None
-        dDeveui = None
-        dAppKey = None
+        gUrl = url
+        gHeader = header
+        reqType = 'get_req'
 
-        if ((not dVarArgs[
-                'SYSEUI']) or ('SYSEUI-NOT-SET' in dVarArgs['SYSEUI'])):
+        response = requests.get(gUrl, headers=gHeader)
+
+        oAppContext.verbose(
+                "\nRequest Header:\n\n{}\n"
+                .format(response.request.headers
+                ))
+
+        responseCode = response.status_code
+        result = response.json()
+        verify_response(reqType, responseCode, result)
+
+        return result
+
+
+def post_request(url, header, data):
+        '''
+        It will perform POST request
+
+        :param url: request url
+        :param header: header information
+        :param data: POST data 
+        
+        :return: return API response if success
+
+        '''
+
+        pUrl = url
+        pHeader = header
+        pData = data
+        reqType = None
+
+        if pHeader['Content-Type'] == 'application/json':
+                pData = json.dumps(pData)
+
+        if 'token' in pUrl:
+                reqType = 'get_token'
+
+        if 'devices' in pUrl:
+                reqType = 'create_device'
+        
+        response = requests.post(pUrl, headers=pHeader, data=pData)
+
+        oAppContext.verbose(
+                "\nRequest Header:\n\n{}\n".format(response.request.headers)
+                )
+        oAppContext.verbose(
+                "\nRequest Body:\n\n{}\n".format(response.request.body)
+                )
+
+        responseCode = response.status_code
+        result = response.json()
+        verify_response(reqType, responseCode, result)
+
+        return result
+
+
+def get_token(url, tconfiginfo):
+        '''
+        Get token configuration details and send it to post request for 
+        receive token result
+
+        :param url: request url
+        :param tconfiginfo: config dict
+
+        :return: token details if success
+
+        '''
+
+        reqUrl = url
+        dConfig = tconfiginfo
+
+        headers = {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Accept': 'application/json'
+        }
+
+        pResult = post_request(reqUrl, headers, dConfig)
+        oAppContext.debug("Access Token Generated: \n{}\n".format(pResult))
+        return pResult
+
+def get_appinfo(url, token):
+        '''
+        Send request to receive application information
+
+        :param url: request url
+        :param token: access token
+
+        :return: application information if success
+
+        '''
+
+        reqUrl = url
+        authToken = token
+        appInfo = dict()
+
+        headers = {
+                'Accept': 'application/json',
+                'Authorization': None
+        }
+
+        headers['Authorization'] = authToken
+
+        appResult = get_request(reqUrl, headers)
+        oAppContext.verbose("Application Info Result: \n{}\n".format(appResult))
+
+        for i in range(len(appResult)):
+                appInfo[appResult[i]['ref']] = appResult[i]['name']
+        
+        return appInfo
+
+
+def create_device(dUrl, rUrl, authtoken, dProfId):
+        ''' 
+        Get device creation information and send post request for create a 
+        new device. It also verify the device configuration details before 
+        sending post request
+
+        :param dUrl: device creation request url
+        :param rUrl: application info request url
+        :param authtoken: access token
+        :param dProfId: device profile id dict
+
+        :return: created device result if success
+
+        '''
+
+        headers = {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Authorization': None
+        }
+
+        dCreateDevConfig = {
+                'name': None,
+                'EUI': None,
+                'activationType': 'OTAA',
+                'deviceProfileId': None,
+                'applicationEUI': None,
+                'applicationKey': None
+        }
+
+        reqUrl = dUrl
+        routeUrl = rUrl
+        headers['Authorization'] = authtoken
+
+        if ((not oAppContext.dVariables[
+                'SYSEUI']) or 
+                (oAppContext.dVariables['SYSEUI'] == 'SYSEUI-NOT-SET')):
                 while True:
                         devEUI = input('Enter Device EUI: ')
-                        if re.match(r'[0-9A-Fa-f]{16}', devEUI):
-                                oAppContext.dVariables['SYSEUI'] = devEUI
+                        if re.match(r'[0-9A-F]{16}', devEUI):
+                                oAppContext.dVariables[
+                                        'SYSEUI'] = devEUI.replace('\n', '')
+                                dCreateDevConfig[
+                                        'EUI'] = devEUI.replace('\n', '')
+                                oAppContext.dVariables[
+                                        'DEVEUI'] = devEUI.replace('\n', '')
                                 break
                         else:
                                 print('Invalid device EUI entered.')
-        
-        selectAppCmdList = ['ttnctl', 'applications', 'select']
-
-        if dVarArgs['APPID']:
-                dVarArgs['APPID'] = dVarArgs['APPID'].replace('\n', '')
-                selectAppCmdList.append(dVarArgs['APPID'])
         else:
-                oAppContext.fatal("Must specify APPID")
+                devEUI = oAppContext.dVariables['SYSEUI']
+                dCreateDevConfig['EUI'] = devEUI.replace('\n', '')
+                oAppContext.dVariables['DEVEUI'] = devEUI.replace('\n', '')
+
+        devName = oAppContext.dVariables['BASENAME']
+        devNameExChar = oAppContext.dVariables['DEVEUI']
+        devNameResult = devName + devNameExChar[-4:]
+        dCreateDevConfig['name'] = devNameResult
+
+        if (not oAppContext.dVariables['MODEL']):
+                for k, v in dProfId.items():
+                        for idx, val in enumerate(v):
+                                print("{0}. {1}\n".format(idx+1, val))
                 
-        devRegisterCmdList = ['ttnctl', 'devices', 'register']
-
-        if dVarArgs['BASENAME']:
-                devBaseName = dVarArgs['BASENAME'].replace('\n', '')
-                sysEUI = oAppContext.dVariables['SYSEUI'].lower()
-                sysEUI = sysEUI.replace('\n', '')
-                devBaseName = devBaseName + sysEUI.lower()
-
-                devRegisterCmdList.append(devBaseName)
-                devRegisterCmdList.append(sysEUI)
+                while True:
+                        modIp = input(
+                                'Select Device Profile ID (Enter 1 or 2): ')
+                        if modIp == 1:
+                                oAppContext.dVariables[
+                                        'MODEL'] = dProfId[
+                                                'profile_id'][modIp-1]
+                                dCreateDevConfig[
+                                        'deviceProfileId'] = dProfId[
+                                                'profile_id'][modIp-1]
+                                break
+                        elif modIp == 2:
+                                oAppContext.dVariables[
+                                        'MODEL'] = dProfId[
+                                                'profile_id'][modIp-1]
+                                dCreateDevConfig[
+                                        'deviceProfileId'] = dProfId[
+                                                'profile_id'][modIp-1]
+                                break
+                        else:
+                                print('Invalid number entered.')
         else:
-                oAppContext.fatal("Must specify devcie basename")
+                dCreateDevConfig[
+                        'deviceProfileId'] = oAppContext.dVariables['MODEL']
+
+        if (not oAppContext.dVariables['APPEUI']):
+                while True:
+                        appEUI = input('Enter App EUI: ')
+                        if re.match(r'[0-9A-F]{16}', appEUI):
+                                oAppContext.dVariables['APPEUI'] = appEUI
+                                dCreateDevConfig['applicationEUI'] = appEUI
+                                break
+                        else:
+                                print('Invalid application EUI entered.')
+        else:
+                dCreateDevConfig[
+                        'applicationEUI'] = oAppContext.dVariables['APPEUI']
+
+        if (not oAppContext.dVariables['APPKEY']):
+                while True:
+                        appKey = input('Enter App Key: ')
+                        if re.match(r'[0-9A-F]{32}', appKey):
+                                oAppContext.dVariables['APPKEY'] = appKey
+                                dCreateDevConfig['applicationKey'] = appKey
+                                break
+                        else:
+                                print("Invalid application key entered.")
+        else:
+                dCreateDevConfig[
+                        'applicationKey'] = oAppContext.dVariables['APPKEY']
+
+        if (not oAppContext.dVariables['APPID']):
+                appIdResult = get_appinfo(routeUrl, authtoken)
+                appIdList = [] 
                 
-        devInfoCmdList = ['ttnctl', 'devices', 'info']
+                print("\nAPP ID    APPLICATION NAME")
+                print("\n==========================")
+                for rId, rName in appIdResult.items():
+                        print("\n{}   - {}".format(rId, rName))
 
-        if dVarArgs['HANDLERID']:
-                dVarArgs['HANDLERID'] = '--handler-id=' + dVarArgs[
-                        'HANDLERID'].replace('\n', '')
-                devRegisterCmdList.append(dVarArgs['HANDLERID'])
-                devInfoCmdList.append(dVarArgs['HANDLERID'])
-                
-        #devInfoCmdList.append(dVarArgs['APPID'])
-        sysEUI = oAppContext.dVariables['SYSEUI']
-        sysEUI = sysEUI.replace('\n', '')
-        devInfoCmdList.append(
-                dVarArgs['BASENAME'] + sysEUI.lower())
-        #devInfoCmdList.append('--format')
-        #devInfoCmdList.append('string')
-
-        selectAppResult = writettncommand(selectAppCmdList)
-
-        if selectAppResult is not None:
-                oAppContext.debug("TTNCTL - Application Selected:\n {}"
-                                        .format(selectAppResult)
-                                        )
+                while True:
+                        appId = input('\nEnter App ID: ')
+                        if re.match(r'[0-9]{5}',appId):
+                                appId = str(appId)
+                                appIdList.append(appId)
+                                oAppContext.dVariables[
+                                        'APPID'] = appIdResult[appId]
+                                dCreateDevConfig['routeRefs'] = appIdList
+                                break
+                        else:
+                                print("Invalid application id entered.")
         else:
-                oAppContext.fatal("Select Application failed")
+                appIdList = []
+                appFlag = 0
+                appName = oAppContext.dVariables['APPID']
 
-        devRegisterResult = writettncommand(devRegisterCmdList)
+                appIdResult = get_appinfo(routeUrl, authtoken)
 
-        if devRegisterResult is not None:
-                oAppContext.debug("TTNCTL - Device Registered:\n {}"
-                                        .format(devRegisterResult)
-                                        )
-        else:
-                oAppContext.fatal("Device Registration failed")
+                for rId, rName in appIdResult.items():
+                        if (rName == appName):
+                                appFlag = 1
+                                appId = rId
 
-        devInfoResult = writettncommand(devInfoCmdList)
+                if (appFlag == 1):
+                        appIdList.append(appId)
+                        dCreateDevConfig['routeRefs'] = appIdList
+                else:
+                        oAppContext.fatal("Invalid APPID Received")
 
-        if devInfoResult is not None:
-                oAppContext.debug("TTNCTL - Device Info:\n {}"
-                                        .format(devInfoResult)
-                                        )
-        else:
-                oAppContext.fatal("Getting Device Info failed")
+        pResult = post_request(reqUrl, headers, dCreateDevConfig)
+        oAppContext.debug("Device Created: \n{}\n".format(pResult))
+        return pResult
 
-        devInfoResult = re.sub(' {2,}', '', devInfoResult)
-        dResult = re.findall(r'^([A-Za-z]+): ([\S ]*)$',
-                                devInfoResult,
-                                re.MULTILINE
-                                )
 
-        devInfo = dict(dResult)
+def get_deviceinfo(url, refId, authtoken):
+        '''
+        Get device info and send request to receive created device information
 
-        for k, v in devInfo.items():
-                if k.upper() == "APPEUI":
-                        dAppeui = v
-                if k.upper() == "DEVEUI":
-                        dDeveui = v
-                if k.upper() == "APPKEY":
-                        dAppKey = v
+        :param url: request url
+        :param refId: device reference id
+        :param authtoken: access token
 
-        if not dAppeui:
-                oAppContext.fatal("APPEUI is none")
-        elif not dDeveui:
-                oAppContext.fatal("DEVEUI is none")
-        elif not dAppKey:
-                oAppContext.fatal("APPKEY is none")
-        else:
-                oAppContext.debug("APPEUI: {0}\nDEVEUI: {1}\nAPPKEY: {2}\n"
-                                        .format(dAppeui, dDeveui, dAppKey)
-                                        )
-                return dAppeui, dDeveui, dAppKey
+        :return: created device information result if success
+
+        '''
+
+        headers = {
+                'Accept': 'application/json',
+                'Authorization': None
+        }
+
+        devId = refId
+        reqUrl = url + devId
+        headers['Authorization'] = authtoken
+
+        gResult = get_request(reqUrl, headers)
+        oAppContext.debug("Device Info: \n{}\n".format(gResult))
+        return gResult
 
 
 def expand(sLine):
@@ -786,7 +965,7 @@ if __name__ == '__main__':
                                action='store_true',
                                default=False,
                                dest='register',
-                               help='To register the device in ttn network')
+                               help='Register the device in actility network')
         optparser.add_argument('-Werror',
                                action='store_true',
                                default=False,
@@ -860,22 +1039,48 @@ if __name__ == '__main__':
         checkcomms(oAppContext.fPermissive)
 
         listDirContent = os.listdir(pDir)
-        ttnctlCli = [True for dirfile in listDirContent
-                     if dirfile == 'ttnctl' or dirfile == 'ttnctl.exe']
+        configFile = [True for dirfile in listDirContent
+                     if dirfile == 'actility-config.yml']
 
-        if not ttnctlCli:
-               oAppContext.fatal("ttnctl not found; add to path: {}"
+        if not configFile:
+               oAppContext.fatal("actility-config.yml not found; \
+               add to path: {}"
                                  .format(pDir)
                                  ) 
 
         if oAppContext.fRegister:
-                ttncommResult = ttncomms(
-                        **oAppContext.dVariables)
+                yaml = ruamel.yaml.YAML()
 
-                if ttncommResult:
-                        oAppContext.dVariables['APPEUI'] = ttncommResult[0] 
-                        oAppContext.dVariables['DEVEUI'] = ttncommResult[1]
-                        oAppContext.dVariables['APPKEY'] = ttncommResult[2]
+                with open('actility-config.yml') as yf:
+                        yData = yaml.load(yf)
+
+                if yData['request_url']:
+                        tokenUrl = yData['request_url']['get_token']
+                        deviceUrl = yData['request_url']['device_info']
+                        routeUrl = yData['request_url']['get_routes']
+                
+                if yData['device']:
+                        profileIdInfo = dict(yData['device'])
+
+                if (yData['token_generated']['access_token'] is None) or \
+                (yData['token_generated']['access_token'] == '<token_value>'):
+                        tokenConfigInfo = dict(yData['token_config'])
+                        tokenResult = get_token(tokenUrl, tokenConfigInfo)
+                        accessToken = tokenResult['access_token']
+                        yData['token_generated']['access_token'] = accessToken
+
+                        with open('actility-config.yml', 'w') as wf:
+                                yaml.dump(yData, wf)
+                else:
+                        accessToken = yData['token_generated']['access_token']
+
+                authToken = 'Bearer ' + accessToken
+
+                devCreationResult = create_device(
+                        deviceUrl, routeUrl, authToken, profileIdInfo)
+                devRefId = devCreationResult['ref']
+
+                devInfoResult = get_deviceinfo(deviceUrl, devRefId, authToken)
 
                 oAppContext.verbose("Vars Dict:\n {}"
                                   .format(oAppContext.dVariables)

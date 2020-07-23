@@ -36,9 +36,7 @@ class AppContext:
                 self.dVariables = {'APPEUI': None,
                                    'DEVEUI': None,
                                    'APPKEY': None,
-                                   'APPID' : None,
                                    'BASENAME' : None,
-                                   'HANDLERID' : None,
                                    'SYSEUI' : None
                                    }
         
@@ -359,6 +357,7 @@ def getsyseui(fPermissive):
                 return None
         else:
                 sEUI = re.sub(r'-', '', sEUI)
+                sEUI = sEUI.replace('\n', '')
                 return sEUI
 
 
@@ -422,68 +421,68 @@ def checkcomms(fPermissive):
                 return False
 
 
-def writettncommand(tCmd):
+def writeheliumcommand(hCmd):
         '''
-        Transer ttnctl command and receive result.
+        Transer helium command and receive result.
 
-        This function sends `tCmd` to the ttnctl cli, then reads the result. It
+        This function sends `hCmd` to the helium cli, then reads the result. It
         checks the return code number, if it is 0 send result or send error
         message otherwise.
 
-        :param tCmd: ttnctl command
+        :param hCmd: helium command
 
-        :return: ttnctl result if success, None if failure
+        :return: helium result if success, None if failure
         
         '''
 
-        ttncmd = tCmd
-        oAppContext.debug("TTN COMMAND: {}".format(' '.join(ttncmd)))
+        heliumcmd = hCmd
+        oAppContext.debug("HELIUM COMMAND: {}".format(' '.join(heliumcmd)))
 
-        sResult = subprocess.Popen(ttncmd,
+        sResult = subprocess.Popen(heliumcmd,
                                         stdin = subprocess.PIPE,
                                         stdout = subprocess.PIPE,
                                         stderr = subprocess.PIPE
                                         )
         
-        tResult = pexpect.fdpexpect.fdspawn(sResult.stdout.fileno())
+        hResult = pexpect.fdpexpect.fdspawn(sResult.stdout.fileno())
 
         try:
-                index = tResult.expect('> ')
+                index = hResult.expect('Enter API key')
                 if index == 0:
                         flag = 0
-                        msg = (tResult.before).decode()
-                        oAppContext.debug("TTNCTL RESULT:\n {}"
-                                          .format(msg)
-                                          )
+                        msg = (hResult.before).decode()
+                        #oAppContext.debug("HELIUM RESULT:\n {}"
+                        #                  .format(msg))
+                        print("Enter API key: ", end="\n")
                         opt = input()
                         opt = str(opt)
                         sResult.stdin.write(opt.encode())
-                        ttnResult, err = sResult.communicate()
+                        heliumResult = sResult.communicate()
         except Exception:
                 flag = 1
-                msg = (tResult.before).decode()
-                oAppContext.verbose("TTNCTL RESULT:\n {}".format(msg))
-                ttnResult, err = sResult.communicate()
+                msg = (hResult.before).decode()
+                oAppContext.verbose("HELIUM RESULT:\n {}".format(msg))
+                heliumResult = sResult.communicate()
 
         if (sResult.returncode == 0) and flag == 0:
-                return ttnResult
+                return heliumResult[0].decode()
         elif (sResult.returncode == 0) and flag == 1:
                 return msg
         else:
                 return None
 
 
-def ttncomms(**dVarArgs):
+def heliumcomms(**dVarArgs):
         '''
-        Send ttnctl commands and receives information to config catena
+        Send helium cli commands and receives information to config catena
 
-        This function checks for information in dict to send it to ttnctl cli.
-        It then sends command and receives registered device info from ttnctl.
+        This function checks for information in dict to send it to helium cli.
+        It then sends command and receives registered device info from helium.
         Parse the results and store it in dict to use it later in script lines.
 
-        :param **dVarArgs: ttnctl config info in dict
+        :param **dVarArgs: helium config info in dict
 
-        :return: AppEUI, DevEUI, AppKey
+        :return: True if success else None
         
         '''
         
@@ -496,90 +495,89 @@ def ttncomms(**dVarArgs):
                 'SYSEUI']) or ('SYSEUI-NOT-SET' in dVarArgs['SYSEUI'])):
                 while True:
                         devEUI = input('Enter Device EUI: ')
-                        if re.match(r'[0-9A-Fa-f]{16}', devEUI):
+                        if re.match(r'[0-9A-F]{16}', devEUI):
                                 oAppContext.dVariables['SYSEUI'] = devEUI
                                 break
                         else:
                                 print('Invalid device EUI entered.')
         
-        selectAppCmdList = ['ttnctl', 'applications', 'select']
+        if (not dVarArgs['APPEUI']):
+                while True:
+                        appEUI = input('Enter App EUI: ')
+                        if re.match(r'[0-9A-F]{16}', appEUI):
+                                oAppContext.dVariables['APPEUI'] = appEUI
+                                break
+                        else:
+                                print('Invalid application EUI entered.')
 
-        if dVarArgs['APPID']:
-                dVarArgs['APPID'] = dVarArgs['APPID'].replace('\n', '')
-                selectAppCmdList.append(dVarArgs['APPID'])
-        else:
-                oAppContext.fatal("Must specify APPID")
-                
-        devRegisterCmdList = ['ttnctl', 'devices', 'register']
+        if (not dVarArgs['APPKEY']):
+                while True:
+                        appKey = input('Enter App Key: ')
+                        if re.match(r'[0-9A-F]{32}', appKey):
+                                oAppContext.dVariables['APPKEY'] = appKey
+                                break
+                        else:
+                                print("Invalid application key entered.")
 
         if dVarArgs['BASENAME']:
                 devBaseName = dVarArgs['BASENAME'].replace('\n', '')
                 sysEUI = oAppContext.dVariables['SYSEUI'].lower()
                 sysEUI = sysEUI.replace('\n', '')
                 devBaseName = devBaseName + sysEUI.lower()
-
-                devRegisterCmdList.append(devBaseName)
-                devRegisterCmdList.append(sysEUI)
         else:
                 oAppContext.fatal("Must specify devcie basename")
-                
-        devInfoCmdList = ['ttnctl', 'devices', 'info']
 
-        if dVarArgs['HANDLERID']:
-                dVarArgs['HANDLERID'] = '--handler-id=' + dVarArgs[
-                        'HANDLERID'].replace('\n', '')
-                devRegisterCmdList.append(dVarArgs['HANDLERID'])
-                devInfoCmdList.append(dVarArgs['HANDLERID'])
-                
-        #devInfoCmdList.append(dVarArgs['APPID'])
-        sysEUI = oAppContext.dVariables['SYSEUI']
-        sysEUI = sysEUI.replace('\n', '')
-        devInfoCmdList.append(
-                dVarArgs['BASENAME'] + sysEUI.lower())
-        #devInfoCmdList.append('--format')
-        #devInfoCmdList.append('string')
+        devRegisterCmdList = ['helium-console-cli', 'device', 'create']
+        devInfoCmdList = ['helium-console-cli', 'device', 'get']
 
-        selectAppResult = writettncommand(selectAppCmdList)
+        devRegisterCmdList.append(oAppContext.dVariables['APPEUI'])
+        devRegisterCmdList.append(oAppContext.dVariables['APPKEY'])
+        devRegisterCmdList.append(oAppContext.dVariables['SYSEUI'])
+        devRegisterCmdList.append(devBaseName)
 
-        if selectAppResult is not None:
-                oAppContext.debug("TTNCTL - Application Selected:\n {}"
-                                        .format(selectAppResult)
-                                        )
-        else:
-                oAppContext.fatal("Select Application failed")
+        devInfoCmdList.append(oAppContext.dVariables['APPEUI'])
+        devInfoCmdList.append(oAppContext.dVariables['APPKEY'])
+        devInfoCmdList.append(oAppContext.dVariables['SYSEUI'])
 
-        devRegisterResult = writettncommand(devRegisterCmdList)
+        devRegisterResult = writeheliumcommand(devRegisterCmdList)
 
         if devRegisterResult is not None:
-                oAppContext.debug("TTNCTL - Device Registered:\n {}"
+                oAppContext.debug("HELIUM - Device Registered:\n {}"
                                         .format(devRegisterResult)
                                         )
         else:
                 oAppContext.fatal("Device Registration failed")
 
-        devInfoResult = writettncommand(devInfoCmdList)
+        devInfoResult = writeheliumcommand(devInfoCmdList)
 
         if devInfoResult is not None:
-                oAppContext.debug("TTNCTL - Device Info:\n {}"
+                oAppContext.debug("HELIUM - Device Info:\n {}"
                                         .format(devInfoResult)
                                         )
         else:
                 oAppContext.fatal("Getting Device Info failed")
+        
+        regMatch = re.search(
+                r'([\s\S]*){\n([\s\S]*)}\n', devInfoResult, re.MULTILINE)
+        
+        if not regMatch.group(2):
+                oAppContext.fatal("Error in Device Info")
+        else:
+                devInfoPacked = regMatch.group(2)
+                
+        devInfoPacked = re.sub(' {2,}', '', devInfoPacked)
 
-        devInfoResult = re.sub(' {2,}', '', devInfoResult)
-        dResult = re.findall(r'^([A-Za-z]+): ([\S ]*)$',
-                                devInfoResult,
-                                re.MULTILINE
-                                )
+        devInfoUnpack = re.findall(
+                r'(\S+): \"(\S+)\"\,\n', devInfoPacked, re.MULTILINE)
 
-        devInfo = dict(dResult)
+        devInfo = dict(devInfoUnpack)
 
         for k, v in devInfo.items():
-                if k.upper() == "APPEUI":
+                if k.upper() == "APP_EUI":
                         dAppeui = v
-                if k.upper() == "DEVEUI":
+                if k.upper() == "DEV_EUI":
                         dDeveui = v
-                if k.upper() == "APPKEY":
+                if k.upper() == "APP_KEY":
                         dAppKey = v
 
         if not dAppeui:
@@ -592,7 +590,14 @@ def ttncomms(**dVarArgs):
                 oAppContext.debug("APPEUI: {0}\nDEVEUI: {1}\nAPPKEY: {2}\n"
                                         .format(dAppeui, dDeveui, dAppKey)
                                         )
-                return dAppeui, dDeveui, dAppKey
+        
+        if (dAppeui == oAppContext.dVariables['APPEUI']) and \
+        (dAppKey == oAppContext.dVariables['APPKEY']) and \
+        (dDeveui == oAppContext.dVariables['SYSEUI']):
+                oAppContext.dVariables['DEVEUI'] = dDeveui
+                return True
+        else:
+                return None
 
 
 def expand(sLine):
@@ -786,7 +791,7 @@ if __name__ == '__main__':
                                action='store_true',
                                default=False,
                                dest='register',
-                               help='To register the device in ttn network')
+                               help='Registers the device in helium network')
         optparser.add_argument('-Werror',
                                action='store_true',
                                default=False,
@@ -860,22 +865,23 @@ if __name__ == '__main__':
         checkcomms(oAppContext.fPermissive)
 
         listDirContent = os.listdir(pDir)
-        ttnctlCli = [True for dirfile in listDirContent
-                     if dirfile == 'ttnctl' or dirfile == 'ttnctl.exe']
+        heliumCli = [True for dirfile in listDirContent
+                     if dirfile == 'helium-console-cli' or 
+                     dirfile == 'helium-console-cli.exe']
 
-        if not ttnctlCli:
-               oAppContext.fatal("ttnctl not found; add to path: {}"
+        if not heliumCli:
+               oAppContext.fatal("helium cli not found; add to path: {}"
                                  .format(pDir)
                                  ) 
 
         if oAppContext.fRegister:
-                ttncommResult = ttncomms(
+                heliumcommResult = heliumcomms(
                         **oAppContext.dVariables)
-
-                if ttncommResult:
-                        oAppContext.dVariables['APPEUI'] = ttncommResult[0] 
-                        oAppContext.dVariables['DEVEUI'] = ttncommResult[1]
-                        oAppContext.dVariables['APPKEY'] = ttncommResult[2]
+                
+                if heliumcommResult:
+                        oAppContext.debug("Device Created Successfully")
+                else:
+                        oAppContext.fatal("Failed to create device")
 
                 oAppContext.verbose("Vars Dict:\n {}"
                                   .format(oAppContext.dVariables)

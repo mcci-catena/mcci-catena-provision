@@ -40,6 +40,18 @@ This repository contains two programs.
     - [Using `mcci-catena-provision.py`](#using-mcci-catena-provisionpy)
     - [Catena Script File](#catena-script-file)
     - [Example (`mcci-catena-provision.py`)](#example-mcci-catena-provisionpy)
+  - [`mcci-catena-provision-actility.py`](#mcci-catena-provision-actilitypy)
+    - [Required](#required-1)
+    - [Notes](#notes-1)
+    - [Using `mcci-catena-provision-actility.py`](#using-mcci-catena-provision-actilitypy)
+    - [Catena Script File](#catena-script-file-1)
+    - [Example (`mcci-catena-provision-actility.py`)](#example-mcci-catena-provision-actilitypy)
+  - [`mcci-catena-provision-helium.py`](#mcci-catena-provision-heliumpy)
+    - [Required](#required-2)
+    - [Notes](#notes-2)
+    - [Using `mcci-catena-provision-helium.py`](#using-mcci-catena-provision-heliumpy)
+    - [Catena Script File](#catena-script-file-2)
+    - [Example (`mcci-catena-provision-helium.py`)](#example-mcci-catena-provision-heliumpy)
   - [Credits](#credits)
 
 <!-- /TOC -->
@@ -251,13 +263,13 @@ files.
 files, in particular `ttnctl`. You can put this on your executable path, but
 the easiest thing is to put it in the same directory as the script.
 
-3. When you get ttnctl, it will have a very long name specific  to your
+3. When you get ttnctl, it will have a very long name specific to your
 operating system (like `ttnctl-windows-amd64.exe` on 64-bit Windows). Copy
 or rename the file to `ttnctl.exe` (on Windows) or `ttnctl` (on macOS and
 Linux).
 
-4. You'll need to log in to the TTN console using `ttnctl user login
-[ttnctl access code]`. Get the access code from [account.thethingsnetwork.org](https://account.thethingsnetwork.org/)
+4. You'll need to log in to the TTN console from command terminal using `ttnctl user login
+<ttnctl_access_code>`. Get the access code from [account.thethingsnetwork.org](https://account.thethingsnetwork.org/)
 
 ### Using `mcci-catena-provision.py`
 
@@ -275,6 +287,8 @@ python mcci-catena-provision.py -[options]
 * `-V` - name=value defines a variable named name, which can subsequently be used in ttnctl application configuration. This option is cumulative. You may use it many times to define different variables. For example, `-V APPID=mycatena4450 BASENAME=mycatena4450- HANDLERID=ttn-handler-eu`
 * `-echo` - causes script lines.
 * `-nowrite` - disable writing commands from script file to the Catena.
+* `-permissive` - helps to set SYSEUI, if it isn't set
+* `-r` - register the device in ttn network
 * `-s` - specifies the mcci-catena-provision script to be used for loading the information into the Catena.
 * `-Werror` - says that any warning messages should be promoted to errors, resulting in error messages and non-zero exit status.
 
@@ -287,6 +301,7 @@ and function:
 
 * `catenainit-otaa.cat` - Configure a Catena for OTAA
 * `catena-4610-base-otaa.cat` - Configure a Catena 4610 in production
+* `catena-4612-otaa.cat` - Configure a Catena 4612 in production
 * `catena-4617-otaa.cat` - Configure a Catena 4617 in production
 * `catena-4618-otaa.cat` - Configure a Catena 4618 in production
 * `catena-4630-otaa.cat` - Configure a Catena 4630 in production
@@ -311,9 +326,9 @@ valid handler values were "ttn-handler-eu" and  "ttn-handler-us-west".
 ### Example (`mcci-catena-provision.py`)
 
 ```console
-python3 mcci-catena-provision.py -D -port /dev/cu.usbmodem621 -V APPID=myloracat-test BASENAME=myloracat-test- HANDLERID=ttn-handler-eu -s catenainit-otaa.cat
+python mcci-catena-provision.py -D -port COM25 -permissive -r -V APPID=myloracat-test BASENAME=myloracat-test- HANDLERID=ttn-handler-eu -s catenainit-otaa.cat
 
-Port /dev/cu.usbmodem621 opened
+Port COM25 opened
 CheckComms
 >>> system version
 
@@ -340,7 +355,7 @@ TTNCTL - Device Registered:
   INFO Generating random AppKey...
   INFO Discovering Handler...                   Handler=ttn-handler-eu
   INFO Connecting with Handler...               Handler=eu.thethings.network:1904
-  INFO Registered device                        AppEUI=70B3D57ED0020B11 AppID=myloracat-test AppKey=3F7C97348A9F938BE3805CAE51A30B22 DevEUI=0002CC010000007D DevID=myloracat-test-0002cc010000007d
+  INFO Registered device                        AppEUI=70B3D57ED0020B11 AppID=myloracat-test AppKey=0123456789ABCDEF0123456789ABCDEF DevEUI=0002CC010000007D DevID=myloracat-test-0002cc010000007d
 
 TTN COMMAND: ttnctl devices info --handler-id=ttn-handler-eu myloracat-test-0002cc010000007d
 TTNCTL - Device Info:
@@ -358,7 +373,7 @@ TTNCTL - Device Info:
      AppEUI: 70B3D57ED0020B11
      DevEUI: 005AB6DA3EFB7B17
     DevAddr: <nil>
-     AppKey: BF0A14350226F2760017F43C9B72D8FF
+     AppKey: 0123456789ABCDEF0123456789ABCDEF
     AppSKey: <nil>
     NwkSKey: <nil>
      FCntUp: 0
@@ -367,7 +382,7 @@ TTNCTL - Device Info:
 
 APPEUI: 70B3D57ED0020B11
 DEVEUI: 005AB6DA3EFB7B17
-APPKEY: BF0A14350226F2760017F43C9B72D8FF
+APPKEY: 0123456789ABCDEF0123456789ABCDEF
 
 DoScript: catenainit-otaa.cat
 >>> lorawan configure deveui 0002CC010000007D
@@ -378,7 +393,7 @@ DoScript: catenainit-otaa.cat
 
 <<< OK
 
->>> lorawan configure appkey BF0A14350226F2760017F43C9B72D8FF
+>>> lorawan configure appkey 0123456789ABCDEF0123456789ABCDEF
 
 <<< OK
 
@@ -402,7 +417,321 @@ DoScript: catenainit-otaa.cat
 
 <<< OK
 
-Port /dev/cu.usbmodem621 closed
+Port COM25 closed
+No errors detected
+
+```
+
+## `mcci-catena-provision-actility.py`
+
+This script communicates with catena to get information for register it in Actility network via Thingpark Enterprise API, then it loads the catena script to device for complete the provisioning process.
+
+### Required
+
+* Python 3.* (Installation steps [here](https://realpython.com/installing-python/))
+* Install Python packages [pyserial](https://pyserial.readthedocs.io/en/latest/pyserial.html#installation), [requests](https://requests.readthedocs.io/en/master/) and [ruamel.yaml](https://yaml.readthedocs.io/en/latest/) using following commands in terminal/command prompt:
+  1. `pip install pyserial`
+  2. `pip install requests`
+  3. `pip install ruamel.yaml`
+* Actility user account
+* Catena Script File (It should be placed in the same repository as the script)
+
+### Notes
+
+1. You need to chose a directory for this script and supporting materials.
+If you use `git clone`, you'll specify the target directory; if you download
+the zip file from git, then you'll need to choose a place to unpack the
+files.
+
+2. Once the files are unpacked, please open the `actility-config.yml` file and 
+edit client_id & client_credentials. For e.g. client_id : tpe-eu-api/xxxxx@yyy.com, 
+client_credentials: \<your_password\>
+
+### Using `mcci-catena-provision-actility.py`
+
+```
+python mcci-catena-provision-actility.py -[options]
+```
+
+`-[options]` may be any of the following:
+
+* `-D` - enables debug output.
+* `-port` - selects the COM port to be used. For Example: `-port COM11` (windows) or `-port /dev/tty*` (linux) or `-port /dev/cu.*` (Mac)
+* `-baud` - sets the desired baud rate. The default is 115200.
+* `-info` - outputs information about the Catena to STDOUT.
+* `-v` - selects verbose mode.
+* `-V` - name=value defines a variable named name, which can subsequently be used in ttnctl application configuration. This option is cumulative. You may use it many times to define different variables. For example, `-V APPEUI=000A000100000047 APPKEY=0123456789ABCDEF0123456789ABCDEF BASENAME=mycatena4470- MODEL=LORA/GenericA.1revB_IN865_Rx2-SF12 APPID=mcci_chennai_mqtt_server`
+* `-echo` - causes script lines.
+* `-nowrite` - disable writing commands from script file to the Catena.
+* `-permissive` - helps to set SYSEUI, if it isn't set
+* `-r` - register the device in actility network
+* `-s` - specifies the mcci-catena-provision script to be used for loading the information into the Catena.
+* `-Werror` - says that any warning messages should be promoted to errors, resulting in error messages and non-zero exit status.
+
+### Catena Script File
+
+A number of provisioning scripts are provided for setting up Catenas; the
+files are named as `{script}.cat`. If your Catena has already been set up at
+the factory, you can use `catena-otaa.cat`.  Here are the scripts by name
+and function:
+
+* `catenainit-otaa.cat` - Configure a Catena for OTAA
+* `catena-4610-base-otaa.cat` - Configure a Catena 4610 in production
+* `catena-4612-otaa.cat` - Configure a Catena 4612 in production
+* `catena-4617-otaa.cat` - Configure a Catena 4617 in production
+* `catena-4618-otaa.cat` - Configure a Catena 4618 in production
+* `catena-4630-otaa.cat` - Configure a Catena 4630 in production
+
+The scripts conventionally get information from variables that are set up
+by you or by the script. The variables are:
+
+* `BASENAME` - The base name to be used for devices. This must be a legal
+DNS-like name (letters, digits and dashes). The device EUI is appended to
+the name. If you want a dash as a separator between the basename and the
+DEVEUI, you must end the basename value with a dash.
+* `APPEUI` - The Application EUI is a unique 64 bit identifier for the application on the network.
+* `DEVEUI` - The device EUI is a unique 64 bit identifier for the end-device on the network.
+* `APPKEY` - The App key is a unique 128 bit identifier which used to secure the communication between the device and the network. It is only known by the device and by the application.
+
+### Example (`mcci-catena-provision-actility.py`)
+
+```
+python mcci-catena-provision-actility.py -D -port COM25 -permissive -r -V BASENAME=catprov- APPEUI=70B3D53260000246 APPKEY=0123456789ABCDEF0123456789ABCDEF MODEL=LORA/GenericA.1revB_IN865_Rx2-SF12 APPID=mcci_chennai_mqtt_server -s catenainit-otaa.cat
+
+Port COM25 opened
+>>> system echo off
+
+<<< system echo off
+OK
+
+CheckComms
+>>> system version
+
+<<< Board: Catena 4470
+Platform-Version: 0.17.0.50
+Arduino-LoRaWAN-Version: 0.6.0.20
+Arduino-LMIC-Version: 3.0.99.5
+MCCIADK-Version: 0.2.1
+MCCI-Arduino-BSP-Version: 2.1.0
+OK
+
+>>> system configure syseui
+
+<<< 00-02-cc-01-00-00-01-93
+OK
+
+Device Created:
+{'ref': '1421589', 'name': 'catprov-0193', 'EUI': '0002CC0100000193', 'activationType': 'OTAA', 'deviceProfileId': 'LORA/GenericA.1revB_IN865_Rx2-SF12', 'connectivityPlanId': 'actility-tpe-cs/tpe-cp', 'processingStrategyId': 'ROUTE', 'routeRefs': ['40344'], 'applicationEUI': '70B3D53260000246'}
+
+Device Info:
+{'ref': '1421589', 'name': 'catprov-0193', 'EUI': '0002CC0100000193', 'activationType': 'OTAA', 'deviceClass': 'A', 'deviceProfileId': 'LORA/GenericA.1revB_IN865_Rx2-SF12', 'connectivityPlanId': 'actility-tpe-cs/tpe-cp', 'processingStrategyId': 'ROUTE', 'routeRefs': ['40344'], 'applicationEUI': '70B3D53260000246', 'commercialDetails': {'image': '/thingpark/wireless/rest/resources/files/logo/deviceProfile/7453', 'manufacturerName': 'Generic', 'manufacturerLogo': '/thingpark/wireless/rest/resources/files/logo/device/202'}}
+
+DoScript: catenainit-otaa.cat
+>>> lorawan configure deveui 0002CC0100000193
+
+<<< OK
+
+>>> lorawan configure appeui 70B3D53260000246
+
+<<< OK
+
+>>> lorawan configure appkey 0123456789ABCDEF0123456789ABCDEF
+
+<<< OK
+
+>>> lorawan configure fcntup 0
+
+<<< OK
+
+>>> lorawan configure fcntdown 0
+
+<<< OK
+
+>>> lorawan configure appskey 0
+
+<<< OK
+
+>>> lorawan configure nwkskey 0
+
+<<< OK
+
+>>> lorawan configure join 1
+
+<<< OK
+
+Port COM25 closed
+No errors detected
+
+```
+
+## `mcci-catena-provision-helium.py`
+
+This script communicates with catena to get information for register it in Helium network via Helium console cli, then it loads the catena script to device for complete the provisioning process.
+
+### Required
+
+* Python 3.* (Installation steps [here](https://realpython.com/installing-python/))
+* Install Python packages [pyserial](https://pyserial.readthedocs.io/en/latest/pyserial.html#installation) and [pexpect](https://pexpect.readthedocs.io/en/stable/install.html) using following commands in terminal/command prompt:
+  1. `pip install pyserial`
+  2. `pip install pexpect`
+* Helium console CLI. Download it [here](https://github.com/helium/helium-console-cli/releases)
+* Catena Script File (It should be placed in the same repository as the script)
+
+### Notes
+
+1. You need to chose a directory for this script and supporting materials.
+If you use `git clone`, you'll specify the target directory; if you download
+the zip file from git, then you'll need to choose a place to unpack the
+files.
+
+2. Once the files are unpacked, you'll also need to get some additional
+files, in particular `helium-console-cli`. You can put this on your executable path, but
+the easiest thing is to put it in the same directory as the script.
+
+3. The first time you use the CLI, you will need to provide an API key. To create an 
+account key, go to your [profile](https://console.helium.com/profile) on 
+Helium Console. From the top right corner, click: `Account -> Profile`. From there, 
+you may generate a key with a specific name and role. The key will only display once. 
+The first time you run the provisioning script, it will prompt you for this key. It 
+will save the key in a local file: `.helium-console-config.toml`.
+
+### Using `mcci-catena-provision-helium.py`
+
+```bash
+python mcci-catena-provision-helium.py -[options]
+```
+
+`-[options]` may be any of the following:
+
+* `-D` - enables debug output.
+* `-port` - selects the COM port to be used. For Example: `-port COM11` (windows) or `-port /dev/tty*` (linux) or `-port /dev/cu.*` (Mac)
+* `-baud` - sets the desired baud rate. The default is 115200.
+* `-info` - outputs information about the Catena to STDOUT.
+* `-v` - selects verbose mode.
+* `-V` - name=value defines a variable named name, which can subsequently be used in ttnctl application configuration. This option is cumulative. You may use it many times to define different variables. For example, `-V APPEUI=000A000100000047 APPKEY=0123456789ABCDEF0123456789ABCDEF BASENAME=mycatena4470-`
+* `-echo` - causes script lines.
+* `-nowrite` - disable writing commands from script file to the Catena.
+* `-permissive` - helps to set SYSEUI, if it isn't set
+* `-r` - register the device in helium network
+* `-s` - specifies the mcci-catena-provision script to be used for loading the information into the Catena.
+* `-Werror` - says that any warning messages should be promoted to errors, resulting in error messages and non-zero exit status.
+
+### Catena Script File
+
+A number of provisioning scripts are provided for setting up Catenas; the
+files are named as `{script}.cat`. If your Catena has already been set up at
+the factory, you can use `catena-otaa.cat`.  Here are the scripts by name
+and function:
+
+* `catenainit-otaa.cat` - Configure a Catena for OTAA
+* `catena-4610-base-otaa.cat` - Configure a Catena 4610 in production
+* `catena-4612-otaa.cat` - Configure a Catena 4612 in production
+* `catena-4617-otaa.cat` - Configure a Catena 4617 in production
+* `catena-4618-otaa.cat` - Configure a Catena 4618 in production
+* `catena-4630-otaa.cat` - Configure a Catena 4630 in production
+
+The scripts conventionally get information from variables that are set up
+by you or by the script. The variables are:
+
+* `BASENAME` - The base name to be used for devices. This must be a legal
+DNS-like name (letters, digits and dashes). The device EUI is appended to
+the name. If you want a dash as a separator between the basename and the
+DEVEUI, you must end the basename value with a dash.
+* `APPEUI` - The Application EUI is a unique 64 bit identifier for the application on the network.
+* `DEVEUI` - The device EUI is a unique 64 bit identifier for the end-device on the network.
+* `APPKEY` - The App key is a unique 128 bit identifier which used to secure the communication between the device and the network. It is only known by the device and by the application.
+
+### Example (`mcci-catena-provision-helium.py`)
+
+```console
+python mcci-catena-provision-helium.py -D -port COM25 -permissive -r -V APPEUI=000A000100000047 APPKEY=0123456789ABCDEF0123456789ABCDEF BASENAME=catena4470- -s catenainit-otaa.cat
+
+Port COM25 opened
+>>> system echo off
+
+<<< system echo off
+OK
+
+CheckComms
+>>> system version
+
+<<< Board: Catena 4470
+Platform-Version: 0.17.0.50
+Arduino-LoRaWAN-Version: 0.6.0.20
+Arduino-LMIC-Version: 3.0.99.5
+MCCIADK-Version: 0.2.1
+MCCI-Arduino-BSP-Version: 2.1.0
+OK
+
+>>> system configure syseui
+
+<<< 00-02-cc-01-00-00-01-93
+OK
+using light sleep
+
+HELIUM COMMAND: helium-console-cli device create 000A000100000047 0123456789ABCDEF0123456789ABCDEF 0002CC0100000193 catena4470-0002cc0100000193
+HELIUM - Device Registered:
+ Device {
+    app_eui: "000A000100000047",
+    app_key: "0123456789ABCDEF0123456789ABCDEF",
+    dev_eui: "0002CC0100000193",
+    id: "1d4b7fcd-3a61-40a3-93d0-7b50642648d9",
+    name: "catena4470-0002cc0100000193",
+    organization_id: "542a0c22-248c-423a-ad29-30a58e68543d",
+    oui: 1,
+}
+
+HELIUM COMMAND: helium-console-cli device get 000A000100000047 0123456789ABCDEF0123456789ABCDEF 0002CC0100000193
+HELIUM - Device Info:
+ Device {
+    app_eui: "000A000100000047",
+    app_key: "0123456789ABCDEF0123456789ABCDEF",
+    dev_eui: "0002CC0100000193",
+    id: "1d4b7fcd-3a61-40a3-93d0-7b50642648d9",
+    name: "catena4470-0002cc0100000193",
+    organization_id: "542a0c22-248c-423a-ad29-30a58e68543d",
+    oui: 1,
+}
+
+APPEUI: 000A000100000047
+DEVEUI: 0002CC0100000193
+APPKEY: 0123456789ABCDEF0123456789ABCDEF
+
+Device Created Successfully
+DoScript: catenainit-otaa.cat
+>>> lorawan configure deveui 0002CC0100000193
+
+<<< OK
+
+>>> lorawan configure appeui 000A000100000047
+
+<<< OK
+
+>>> lorawan configure appkey 0123456789ABCDEF0123456789ABCDEF
+
+<<< OK
+
+>>> lorawan configure fcntup 0
+
+<<< OK
+
+>>> lorawan configure fcntdown 0
+
+<<< OK
+
+>>> lorawan configure appskey 0
+
+<<< OK
+
+>>> lorawan configure nwkskey 0
+
+<<< OK
+
+>>> lorawan configure join 1
+
+<<< OK
+
+Port COM25 closed
 No errors detected
 
 ```
