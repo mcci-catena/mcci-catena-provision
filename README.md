@@ -301,6 +301,7 @@ and function:
 
 * `catenainit-otaa.cat` - Configure a Catena for OTAA
 * `catena-4610-base-otaa.cat` - Configure a Catena 4610 in production
+* `catena-4612-otaa.cat` - Configure a Catena 4612 in production
 * `catena-4617-otaa.cat` - Configure a Catena 4617 in production
 * `catena-4618-otaa.cat` - Configure a Catena 4618 in production
 * `catena-4630-otaa.cat` - Configure a Catena 4630 in production
@@ -476,6 +477,7 @@ and function:
 
 * `catenainit-otaa.cat` - Configure a Catena for OTAA
 * `catena-4610-base-otaa.cat` - Configure a Catena 4610 in production
+* `catena-4612-otaa.cat` - Configure a Catena 4612 in production
 * `catena-4617-otaa.cat` - Configure a Catena 4617 in production
 * `catena-4618-otaa.cat` - Configure a Catena 4618 in production
 * `catena-4630-otaa.cat` - Configure a Catena 4630 in production
@@ -623,6 +625,7 @@ and function:
 
 * `catenainit-otaa.cat` - Configure a Catena for OTAA
 * `catena-4610-base-otaa.cat` - Configure a Catena 4610 in production
+* `catena-4612-otaa.cat` - Configure a Catena 4612 in production
 * `catena-4617-otaa.cat` - Configure a Catena 4617 in production
 * `catena-4618-otaa.cat` - Configure a Catena 4618 in production
 * `catena-4630-otaa.cat` - Configure a Catena 4630 in production
