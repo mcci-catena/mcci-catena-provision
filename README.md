@@ -460,7 +460,7 @@ python mcci-catena-provision-actility.py -[options]
 * `-baud` - sets the desired baud rate. The default is 115200.
 * `-info` - outputs information about the Catena to STDOUT.
 * `-v` - selects verbose mode.
-* `-V` - name=value defines a variable named name, which can subsequently be used in ttnctl application configuration. This option is cumulative. You may use it many times to define different variables. For example, `-V APPEUI=000A000100000047 -V APPKEY=0123456789ABCDEF0123456789ABCDEF -V BASENAME=mycatena4470- MODEL=LORA/GenericA.1revB_IN865_Rx2-SF12 -V APPID=mcci_chennai_mqtt_server`
+* `-V` - name=value defines a variable named name, which can subsequently be used in ttnctl application configuration. This option is cumulative. You may use it many times to define different variables. For example, `-V APPEUI=000A000100000047 -V APPKEY=0123456789ABCDEF0123456789ABCDEF -V BASENAME=mycatena4470- -V MODEL=LORA/GenericA.1revB_IN865_Rx2-SF12 -V APPID=mcci_chennai_mqtt_server`
 * `-echo` - causes script lines.
 * `-nowrite` - disable writing commands from script file to the Catena.
 * `-permissive` - helps to set SYSEUI, if it isn't set
@@ -496,7 +496,7 @@ DEVEUI, you must end the basename value with a dash.
 ### Example (`mcci-catena-provision-actility.py`)
 
 ```console
-python mcci-catena-provision-actility.py -D -port COM25 -permissive -r -V BASENAME=catprov- -V APPEUI=70B3D53260000246 -V APPKEY=0123456789ABCDEF0123456789ABCDEF MODEL=LORA/GenericA.1revB_IN865_Rx2-SF12 -V APPID=mcci_chennai_mqtt_server -s catenainit-otaa.cat
+python mcci-catena-provision-actility.py -D -port COM25 -permissive -r -V BASENAME=catprov- -V APPEUI=70B3D53260000246 -V APPKEY=0123456789ABCDEF0123456789ABCDEF -V MODEL=LORA/GenericA.1revB_IN865_Rx2-SF12 -V APPID=mcci_chennai_mqtt_server -s catenainit-otaa.cat
 
 Port COM25 opened
 >>> system echo off
