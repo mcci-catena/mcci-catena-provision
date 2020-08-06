@@ -218,7 +218,7 @@ def writecommand(sCommand):
 
         oAppContext.debug(">>> {}".format(sCommand))
 
-        if not comPort.in_waiting is 0:
+        if comPort.in_waiting != 0:
                 comPort.reset_input_buffer()
 
         try:
@@ -768,7 +768,7 @@ if __name__ == '__main__':
                                dest='echo',
                                help='Echo all device operations')
         optparser.add_argument('-V',
-                               nargs='+',
+                               action='append',
                                dest='vars',
                                help='Specify ttn config info in \
                                name=value format')
