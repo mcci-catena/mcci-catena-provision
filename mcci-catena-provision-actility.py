@@ -626,7 +626,7 @@ def create_device(dUrl, rUrl, authtoken, dProfId):
 
         if ((not oAppContext.dVariables[
                 'SYSEUI']) or 
-                (oAppContext.dVariables['SYSEUI'] == 'SYSEUI-NOT-SET')):
+                ('SYSEUI-NOT-SET' in oAppContext.dVariables['SYSEUI'])):
                 while True:
                         devEUI = input('Enter Device EUI: ')
                         if re.match(r'[0-9A-F]{16}', devEUI):
@@ -947,7 +947,7 @@ if __name__ == '__main__':
                                dest='echo',
                                help='Echo all device operations')
         optparser.add_argument('-V',
-                               nargs='+',
+                               action='append',
                                dest='vars',
                                help='Specify ttn config info in \
                                name=value format')
