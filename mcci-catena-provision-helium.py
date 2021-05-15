@@ -30,8 +30,8 @@ import sys
 
 # Lib imports
 import pexpect
-import serial
 from pexpect import fdpexpect
+import serial
 from serial.tools import list_ports
 
 class AppContext:
