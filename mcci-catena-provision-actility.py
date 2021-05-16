@@ -17,7 +17,7 @@
 #     See accompanying LICENSE file for copyright and license information.
 #
 # Author:
-#     Sivaprakash Veluthambi, MCCI   May, 2021
+#     Sivaprakash Veluthambi, MCCI   May 2021
 #
 ##############################################################################
 
