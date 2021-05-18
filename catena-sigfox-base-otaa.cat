@@ -1,0 +1,9 @@
+#
+# Configure a Catena for OTAA. DEVID is from the -V DEVID=... switch, PAC
+# is from the -V PAC=... switch, KEY is from the -V KEY=... switch
+#
+sigfox configure devid ${DEVID}
+sigfox configure pac ${PAC}
+sigfox configure key ${KEY}
+sigfox configure region 2
+sigfox configure encryption 0
