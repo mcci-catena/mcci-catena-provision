@@ -808,7 +808,7 @@ DEVEUI, you must end the basename value with a dash.
 * `PAC` - The PAC is a unique value for proves the ownership of end-device on the network.
 * `KEY` - The key is a unique identifier which used to secure the communication between the device and the network. It is only known by the device and by the application.
 
-### Example (`mcci_catena_provision_sigfox.py`)
+### Example (`mcci-catena-provision-sigfox.py`)
 
 ```console
 python mcci-catena-provision-sigfox.py -D -port COM32 -permissive -r -V BASENAME=device- -V DEVID=26240FE -V KEY=0123456789ABCDEF0123456789ABCDEF -V PAC=FEDCBA0987654321 -V DEVTYPEID=501f6a9a4175811910adf528 -s catena-sigfox-base-otaa.cat
