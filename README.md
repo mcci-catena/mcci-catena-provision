@@ -52,6 +52,12 @@ This repository contains two programs.
     - [Using `mcci-catena-provision-helium.py`](#using-mcci-catena-provision-heliumpy)
     - [Catena Script File](#catena-script-file-2)
     - [Example (`mcci-catena-provision-helium.py`)](#example-mcci-catena-provision-heliumpy)
+  - [`mcci-catena-provision-sigfox.py`](#mcci-catena-provision-sigfoxpy)
+    - [Required](#required-3)
+    - [Notes](#notes-3)
+    - [Using `mcci-catena-provision-sigfox.py`](#using-mcci-catena-provision-sigfoxpy)
+    - [Catena Script File](#catena-script-file-3)
+    - [Example (`mcci-catena-provision-sigfox.py`)](#example-mcci-catena-provision-sigfoxpy)
   - [Credits](#credits)
 
 <!-- /TOC -->
@@ -732,6 +738,154 @@ DoScript: catenainit-otaa.cat
 <<< OK
 
 Port COM25 closed
+No errors detected
+
+```
+
+## `mcci-catena-provision-sigfox.py`
+
+This script communicates with catena to get information for register it in sigfox network via sigfox API, then it loads the catena script to device for complete the provisioning process.
+
+### Required
+
+* Python 3.* (Installation steps [here](https://realpython.com/installing-python/))
+* Install Python packages [pyserial](https://pyserial.readthedocs.io/en/latest/pyserial.html#installation), [requests](https://requests.readthedocs.io/en/master/) and [ruamel.yaml](https://yaml.readthedocs.io/en/latest/) using following commands in terminal/command prompt:
+  1. `pip install pyserial`
+  2. `pip install requests`
+  3. `pip install ruamel.yaml`
+* Sigfox backend user account
+* Catena Script File (It should be placed in the same repository as the script)
+
+### Notes
+
+1. You need to chose a directory for this script and supporting materials.
+If you use `git clone`, you'll specify the target directory; if you download
+the zip file from git, then you'll need to choose a place to unpack the
+files.
+
+2. Once the files are unpacked, please open the `sigfox-config.yml` file and 
+edit login & pwd. For e.g. login : \<sigfox_api_login_id\>, 
+pwd : \<sigfox_api_password\>
+
+### Using `mcci-catena-provision-sigfox.py`
+
+```
+python mcci-catena-provision-sigfox.py -[options]
+```
+
+`-[options]` may be any of the following:
+
+* `-D` - enables debug output.
+* `-port` - selects the COM port to be used. For Example: `-port COM11` (windows) or `-port /dev/tty*` (linux) or `-port /dev/cu.*` (Mac)
+* `-baud` - sets the desired baud rate. The default is 115200.
+* `-info` - outputs information about the Catena to STDOUT.
+* `-v` - selects verbose mode.
+* `-V` - name=value defines a variable named name, which can subsequently be used in ttnctl application configuration. This option is cumulative. You may use it many times to define different variables. For example, `-V DEVID=1415D16 -V KEY=0123456789ABCDEF0123456789ABCDEF -V BASENAME=device- -V PAC=0123456789ABCDEF01234567 -V DEVTYPEID=0123456789abcdef01234567`
+* `-echo` - causes script lines.
+* `-nowrite` - disable writing commands from script file to the Catena.
+* `-permissive` - helps to set SYSEUI, if it isn't set
+* `-r` - register the device in actility network
+* `-s` - specifies the mcci-catena-provision script to be used for loading the information into the Catena.
+* `-Werror` - says that any warning messages should be promoted to errors, resulting in error messages and non-zero exit status.
+
+### Catena Script File
+
+A number of provisioning scripts are provided for setting up Catenas; the
+files are named as `{script}.cat`. If your Catena has already been set up at
+the factory, you can use `catena-otaa.cat`.  Here is the base script used for
+sigfox network:
+
+* `catena-sigfox-base-otaa.cat` - Configure a Catena for OTAA
+
+The scripts conventionally get information from variables that are set up
+by you or by the script. The variables are:
+
+* `BASENAME` - The base name to be used for devices. This must be a legal
+DNS-like name (letters, digits and dashes). The device EUI is appended to
+the name. If you want a dash as a separator between the basename and the
+DEVEUI, you must end the basename value with a dash.
+* `DEVTYPEID` - The device type id is a unique identifier for the application on the network.
+* `PAC` - The PAC is a unique value for proves the ownership of end-device on the network.
+* `KEY` - The key is a unique identifier which used to secure the communication between the device and the network. It is only known by the device and by the application.
+
+### Example (`mcci_catena_provision_sigfox.py`)
+
+```console
+python mcci-catena-provision-sigfox.py -D -port COM32 -permissive -r -V BASENAME=device- -V DEVID=26240FE -V KEY=0123456789ABCDEF0123456789ABCDEF -V PAC=FEDCBA0987654321 -V DEVTYPEID=501f6a9a4175811910adf528 -s catena-sigfox-base-otaa.cat
+
+Port COM32 opened
+>>> system echo off
+
+<<< system echo off
+OK
+
+CheckComms
+>>> system version
+
+Command sent: system version
+
+<<< Board: Catena 4612
+Platform-Version: 0.19.0.30
+Arduino-LoRaWAN-Version: 0.8.0
+Arduino-LMIC-Version: 3.3.0
+MCCIADK-Version: 0.2.2
+MCCI-Arduino-BSP-Version: 2.8.0
+OK
+
+Board: Catena 4612
+Platform-Version: 0.19.0.30
+Arduino-LoRaWAN-Version: 0.8.0
+Arduino-LMIC-Version: 3.3.0
+MCCIADK-Version: 0.2.2
+MCCI-Arduino-BSP-Version: 2.8.0
+
+
+>>> system configure syseui
+
+<<< 00-02-cc-01-00-00-06-22
+OK
+
+
+ Catena Type: Catena 4612
+ Platform Version: 0.19.0.30
+ SysEUI: 0002cc0100000622
+
+Device Created:
+{'id': '26240FE'}
+
+Device Info:
+{'id': '26240FE', 'name': 'device-26240FE', 'satelliteCapable': False, 'repeater
+': False, 'messageModulo': 4096, 'state': 0, 'comState': 5, 'pac': 'FEDCBA098765
+4322', 'location': {'lat': 0.0, 'lng': 0.0}, 'deviceType': {'id': '501f6a9a41758
+11910adf528'}, 'group': {'id': '4ab30f462564325177713118'}, 'lqi': 4, 'creationT
+ime': 1617197032746, 'modemCertificate': {'id': '5fabcd5d80bd5658641e4415'}, 'pr
+ototype': True, 'automaticRenewal': True, 'automaticRenewalStatus': 1, 'createdB
+y': '5eb5a674e833d96c28dffafd', 'lastEditionTime': 1617197032503, 'lastEditedBy'
+: '5eb5a674e833d96c28dffafd', 'activable': True}
+
+DoScript: catena-sigfox-base-otaa.cat
+
+>>> sigfox configure devid 26240FE
+
+<<< OK
+
+>>> sigfox configure pac FEDCBA0987654322
+
+<<< OK
+
+>>> sigfox configure key 0123456789ABCDEF0123456789ABCDEF
+
+<<< OK
+
+>>> sigfox configure region 2
+
+<<< OK
+
+>>> sigfox configure encryption 0
+
+<<< OK
+
+Port COM32 closed
 No errors detected
 
 ```
