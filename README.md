@@ -21,46 +21,7 @@ This repository contains two programs.
 <!-- markdownlint-disable MD033 MD004 -->
 <!-- markdownlint-capture -->
 <!-- markdownlint-disable -->
-<!-- TOC depthFrom:2 updateOnSave:true -->
-
-- [mcci-catena-provision](#mcci-catena-provision)
-  - [`mcci-catena-provision.bri`](#mcci-catena-provisionbri)
-    - [Overview](#overview)
-    - [Usage](#usage)
-    - [Catena Script File Syntax](#catena-script-file-syntax)
-    - [Scripting Reference](#scripting-reference)
-    - [Using `catenainit-otaa.cat`](#using-catenainit-otaacat)
-  - [`provision-ttn.sh`](#provision-ttnsh)
-    - [Usage: `provision-ttn.sh`](#usage-provision-ttnsh)
-    - [Environment Variables](#environment-variables)
-    - [Example](#example)
-  - [`mcci-catena-provision.py`](#mcci-catena-provisionpy)
-    - [Required](#required)
-    - [Notes](#notes)
-    - [Using `mcci-catena-provision.py`](#using-mcci-catena-provisionpy)
-    - [Catena Script File](#catena-script-file)
-    - [Example (`mcci-catena-provision.py`)](#example-mcci-catena-provisionpy)
-  - [`mcci-catena-provision-actility.py`](#mcci-catena-provision-actilitypy)
-    - [Required](#required-1)
-    - [Notes](#notes-1)
-    - [Using `mcci-catena-provision-actility.py`](#using-mcci-catena-provision-actilitypy)
-    - [Catena Script File](#catena-script-file-1)
-    - [Example (`mcci-catena-provision-actility.py`)](#example-mcci-catena-provision-actilitypy)
-  - [`mcci-catena-provision-helium.py`](#mcci-catena-provision-heliumpy)
-    - [Required](#required-2)
-    - [Notes](#notes-2)
-    - [Using `mcci-catena-provision-helium.py`](#using-mcci-catena-provision-heliumpy)
-    - [Catena Script File](#catena-script-file-2)
-    - [Example (`mcci-catena-provision-helium.py`)](#example-mcci-catena-provision-heliumpy)
-  - [`mcci-catena-provision-sigfox.py`](#mcci-catena-provision-sigfoxpy)
-    - [Required](#required-3)
-    - [Notes](#notes-3)
-    - [Using `mcci-catena-provision-sigfox.py`](#using-mcci-catena-provision-sigfoxpy)
-    - [Catena Script File](#catena-script-file-3)
-    - [Example (`mcci-catena-provision-sigfox.py`)](#example-mcci-catena-provision-sigfoxpy)
-  - [Credits](#credits)
-
-<!-- /TOC -->
+<!-- TOC depthFrom:2 updateOnSave:true -->autoauto- [`mcci-catena-provision.bri`](#mcci-catena-provisionbri)auto    - [Overview](#overview)auto    - [Usage](#usage)auto    - [Catena Script File Syntax](#catena-script-file-syntax)auto    - [Scripting Reference](#scripting-reference)auto    - [Using `catenainit-otaa.cat`](#using-catenainit-otaacat)auto- [`provision-ttn.sh`](#provision-ttnsh)auto    - [Usage: `provision-ttn.sh`](#usage-provision-ttnsh)auto    - [Environment Variables](#environment-variables)auto    - [Example](#example)auto- [`mcci-catena-provision.py`](#mcci-catena-provisionpy)auto    - [Required](#required)auto    - [Notes](#notes)auto    - [Using `mcci-catena-provision.py`](#using-mcci-catena-provisionpy)auto    - [Catena Script File](#catena-script-file)auto    - [Example (`mcci-catena-provision.py`)](#example-mcci-catena-provisionpy)auto- [`mcci-catena-provision-actility.py`](#mcci-catena-provision-actilitypy)auto    - [Required](#required-1)auto    - [Notes](#notes-1)auto    - [Using `mcci-catena-provision-actility.py`](#using-mcci-catena-provision-actilitypy)auto    - [Catena Script File](#catena-script-file-1)auto    - [Example (`mcci-catena-provision-actility.py`)](#example-mcci-catena-provision-actilitypy)auto- [`mcci-catena-provision-helium.py`](#mcci-catena-provision-heliumpy)auto    - [Required](#required-2)auto    - [Notes](#notes-2)auto    - [Using `mcci-catena-provision-helium.py`](#using-mcci-catena-provision-heliumpy)auto    - [Catena Script File](#catena-script-file-2)auto    - [Example (`mcci-catena-provision-helium.py`)](#example-mcci-catena-provision-heliumpy)auto- [`mcci-catena-provision-sigfox.py`](#mcci-catena-provision-sigfoxpy)auto    - [Required](#required-3)auto    - [Notes](#notes-3)auto    - [Using `mcci-catena-provision-sigfox.py`](#using-mcci-catena-provision-sigfoxpy)auto    - [Catena Script File](#catena-script-file-3)auto    - [Example (`mcci-catena-provision-sigfox.py`)](#example-mcci-catena-provision-sigfoxpy)auto- [Credits](#credits)autoauto<!-- /TOC -->
 <!-- markdownlint-restore -->
 <!-- Due to a bug in Markdown TOC, the table is formatted incorrectly if tab indentation is set other than 4. Due to another bug, this comment must be *after* the TOC entry. -->
 
@@ -256,7 +217,7 @@ This script communicates with catena to get information for register it in TTN n
   1. `pip install pyserial`
   2. `pip install pexpect`
 * The Things Network CLI. Download it [here](https://www.thethingsnetwork.org/docs/network/cli/quick-start.html)
-* Catena Script File (It should be placed in the same repository as the script)
+* Catena script file (It should be placed in the same repository as the script)
 
 ### Notes
 
@@ -440,7 +401,7 @@ This script communicates with catena to get information for register it in Actil
   2. `pip install requests`
   3. `pip install ruamel.yaml`
 * Actility user account
-* Catena Script File (It should be placed in the same repository as the script)
+* Catena script file (It should be placed in the same repository as the script)
 
 ### Notes
 
@@ -581,7 +542,7 @@ This script communicates with catena to get information for register it in Heliu
   1. `pip install pyserial`
   2. `pip install pexpect`
 * Helium console CLI. Download it [here](https://github.com/helium/helium-console-cli/releases)
-* Catena Script File (It should be placed in the same repository as the script)
+* Catena script file (It should be placed in the same repository as the script)
 
 ### Notes
 
@@ -754,7 +715,7 @@ This script communicates with catena to get information for register it in sigfo
   2. `pip install requests`
   3. `pip install ruamel.yaml`
 * Sigfox backend user account
-* Catena Script File (It should be placed in the same repository as the script)
+* Catena script file (It should be placed in the same repository as the script)
 
 ### Notes
 
@@ -790,23 +751,7 @@ python mcci-catena-provision-sigfox.py -[options]
 
 ### Catena Script File
 
-A number of provisioning scripts are provided for setting up Catenas; the
-files are named as `{script}.cat`. If your Catena has already been set up at
-the factory, you can use `catena-otaa.cat`.  Here is the base script used for
-sigfox network:
-
-* `catena-sigfox-base-otaa.cat` - Configure a Catena for OTAA
-
-The scripts conventionally get information from variables that are set up
-by you or by the script. The variables are:
-
-* `BASENAME` - The base name to be used for devices. This must be a legal
-DNS-like name (letters, digits and dashes). The device EUI is appended to
-the name. If you want a dash as a separator between the basename and the
-DEVEUI, you must end the basename value with a dash.
-* `DEVTYPEID` - The device type id is a unique identifier for the application on the network.
-* `PAC` - The PAC is a unique value for proves the ownership of end-device on the network.
-* `KEY` - The key is a unique identifier which used to secure the communication between the device and the network. It is only known by the device and by the application.
+The tool depends on your device being able to get commands over a serial port. When you use the tool, you must give it a script that tells the tool how to communicate with the device. These scripts are traditionally called "Catena script files", and have the extension `.cat`. The tool uses the specified script to Sigfox credentials into the device over the device serial port. The script can also do application-specific setup (so you can combine steps during production); but that's not in scope for this discussion. If you're using MCCI Catena devices, start by using the `catena-sigfox-base.cat` script that accompanies this repository. If you've modified the command language, or are using a different device, you may need to modify the script. In that case, please use `catena-sigfox-base.cat` as a starting point.
 
 ### Example (`mcci-catena-provision-sigfox.py`)
 
