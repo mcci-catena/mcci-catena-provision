@@ -25,10 +25,13 @@ import base64
 import json
 import os
 import re
+import stat
 import subprocess
 import sys
 
 # Lib imports
+import nacl.secret
+import nacl.utils
 import requests
 import ruamel.yaml
 import serial
@@ -451,6 +454,60 @@ def checkcomms(fPermissive):
         oAppContext.fatal("SysEUI not set")
         return False
 
+def generate_key():
+    '''
+    '''
+    key = nacl.utils.random(nacl.secret.SecretBox.KEY_SIZE)
+    return key
+
+def encrypt_credential(key, cred):
+    '''
+    '''
+    box = nacl.secret.SecretBox(key)
+    encrypted = box.encrypt(cred)
+    return encrypted
+
+def decrypt_credential(key, cred):
+    '''
+    '''
+    box = nacl.secret.SecretBox(key)
+    decrypted = box.decrypt(cred)
+    return decrypted
+
+def get_api_access_info():
+    '''
+    '''
+    while True:
+        loginID = input('Enter API Login Id: ')
+        if re.match(r'[0-9a-zA-Z]{24}', loginID):
+            loginID = loginID.replace('\n', '')
+            break
+        else:
+            print('Invalid API login id entered')
+
+    while True:
+        apiPwd = input('Enter API Password: ')
+        if re.match(r'[0-9a-zA-Z]{32}', apiPwd):
+            apiPwd = apiPwd.replace('\n', '')
+            break
+        else:
+            print('Invalid API password entered')
+
+    apiAccessInfo = loginID + ":" + apiPwd
+    return apiAccessInfo
+
+def manage_credentials(pDir):
+    pKey = generate_key()
+    apiAccessCred = get_api_access_info()
+    encryptCred = encrypt_credential(pKey, apiAccessCred)
+
+    with open('.mcci-catena-provision-sigfox', 'ab') as f:
+        f.write(pKey + '\n')
+        f.write(encryptCred)
+
+    absPath = os.path.join(pDir, '.mcci-catena-provision-sigfox')
+    os.chmod(absPath, stat.S_IRUSR)
+
 def verify_response(stat, resp):
     '''
     Verify the http requests response code 
@@ -527,7 +584,7 @@ def post_request(url, header, data):
 
     return result
 
-def generate_auth_credential(loginId, password):
+def generate_auth_credential(cred):
     '''
     To generate the basic auth for http requests
 
@@ -540,8 +597,8 @@ def generate_auth_credential(loginId, password):
 
     '''
 
-    concatCredential = loginId + ':' + password
-    encodeCredential = concatCredential.encode('ascii')
+    ## concatCredential = loginId + ':' + password
+    encodeCredential = cred.encode('ascii')
     base64EncodeCredential = base64.b64encode(encodeCredential)
     base64DecodeCredential = base64EncodeCredential.decode('ascii')
 
@@ -837,6 +894,8 @@ if __name__ == '__main__':
         
     pName = os.path.basename(__file__)
     pDir = os.path.dirname(os.path.abspath(__file__))
+    deviceTypeUrl = 'https://api.sigfox.com/v2/device-types/'
+    deviceUrl = 'https://api.sigfox.com/v2/devices/'
 
     oAppContext = AppContext()
 
@@ -974,62 +1033,81 @@ if __name__ == '__main__':
         sys.exit(1)
 
     # Turn off echo, before start provisioning
-    setechooff() 
-    checkcomms(oAppContext.fPermissive)
+    ## setechooff() 
+    ## checkcomms(oAppContext.fPermissive)
 
     # Check config file
     listDirContent = os.listdir(pDir)
     configFile = [
-        True for dirfile in listDirContent if dirfile == 'sigfox-config.yml']
+        True for dirfile in listDirContent if dirfile == '.mcci-catena-provision-sigfox']
 
     if not configFile:
-        oAppContext.fatal(
-            "sigfox-config.yml not found; add to path: {}".format(pDir)
-        )
+        # oAppContext.fatal(
+        #     "sigfox-config.yml not found; add to path: {}".format(pDir)
+        # )
+        # pKey = generate_key()
+        # apiAccessCred = get_api_access_info()
+
+        # with open('.mcci-catena-provision-sigfox', 'ab') as f:
+        #     f.write()
+
+        # absPath = os.path.join(pDir, pName)
+        # os.chmod(absPath, stat.S_IRUSR)
+        manage_credentials(pDir)
 
     if oAppContext.fRegister:
-        yaml = ruamel.yaml.YAML()
+        # yaml = ruamel.yaml.YAML()
 
-        with open('sigfox-config.yml') as yf:
-            yData = yaml.load(yf)
+        # with open('sigfox-config.yml') as yf:
+        #     yData = yaml.load(yf)
 
-        if yData['request_url']:
-            deviceUrl = yData['request_url']['device']
-            deviceTypeUrl = yData['request_url']['device_type']
+        # if yData['request_url']:
+        #     deviceUrl = yData['request_url']['device']
+        #     deviceTypeUrl = yData['request_url']['device_type']
 
-        if ((yData['sigfox_api']['login'] is None) or 
-            (yData['sigfox_api']['login'] == '<login_id>')):
-            while True:
-                apiLoginID = input('Enter Sigfox API login id: ')
-                if re.match(r'[0-9a-f]{24}', apiLoginID):
-                    yData['sigfox_api']['login'] = apiLoginID
+        # if ((yData['sigfox_api']['login'] is None) or 
+        #     (yData['sigfox_api']['login'] == '<login_id>')):
+        #     while True:
+        #         apiLoginID = input('Enter Sigfox API login id: ')
+        #         if re.match(r'[0-9a-f]{24}', apiLoginID):
+        #             yData['sigfox_api']['login'] = apiLoginID
 
-                    with open('sigfox-config.yml', 'w') as wf:
-                        yaml.dump(yData, wf)
+        #             with open('sigfox-config.yml', 'w') as wf:
+        #                 yaml.dump(yData, wf)
                                         
-                    break
-                else:
-                    print('Invalid API login id entered.')
-        else:
-            apiLoginID = yData['sigfox_api']['login']
+        #             break
+        #         else:
+        #             print('Invalid API login id entered.')
+        # else:
+        #     apiLoginID = yData['sigfox_api']['login']
 
-        if ((yData['sigfox_api']['pwd'] is None) or 
-            (yData['sigfox_api']['pwd'] == '<password>')):
-            while True:
-                apiPwd = input('Enter Sigfox API password: ')
-                if re.match(r'[0-9a-f]{24}', apiPwd):
-                    yData['sigfox_api']['pwd'] = apiPwd
+        # if ((yData['sigfox_api']['pwd'] is None) or 
+        #     (yData['sigfox_api']['pwd'] == '<password>')):
+        #     while True:
+        #         apiPwd = input('Enter Sigfox API password: ')
+        #         if re.match(r'[0-9a-f]{24}', apiPwd):
+        #             yData['sigfox_api']['pwd'] = apiPwd
 
-                    with open('sigfox-config.yml', 'w') as wf:
-                        yaml.dump(yData, wf)
+        #             with open('sigfox-config.yml', 'w') as wf:
+        #                 yaml.dump(yData, wf)
                                         
-                    break
-                else:
-                    print('Invalid API login id entered.')
-        else:
-            apiPwd = yData['sigfox_api']['pwd']
+        #             break
+        #         else:
+        #             print('Invalid API login id entered.')
+        # else:
+        #     apiPwd = yData['sigfox_api']['pwd']
+        with open('.mcci-catena-provision-sigfox', 'r') as f:
+            lines = f.readlines()
 
-        authCred = generate_auth_credential(apiLoginID, apiPwd)
+        if len(lines) != 2:
+            path = os.path.join(pDir, '.mcci-catena-provision-sigfox')
+            os.chmod(path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+            os.remove('.mcci-catena-provision-sigfox')
+            manage_credentials(pDir)
+
+        cred = decrypt_credential(lines[0].replace('\n', ''), lines[1])
+
+        authCred = generate_auth_credential(cred)
 
         devCreationResult = register_device( 
             deviceTypeUrl, 
