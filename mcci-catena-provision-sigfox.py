@@ -22,6 +22,7 @@
 # Built-in imports
 import argparse
 import base64
+import getpass
 import json
 import os
 import re
@@ -456,26 +457,62 @@ def checkcomms(fPermissive):
 
 def generate_key():
     '''
+    To generate secret key for encrypt and decrypt credential
+
+    Args:
+        NA
+
+    Returns:
+        Key in byte format
     '''
     key = nacl.utils.random(nacl.secret.SecretBox.KEY_SIZE)
     return key
 
 def encrypt_credential(key, cred):
     '''
+    It encrypts the API access credential 
+
+    Args:
+        key: secret key in bytes to encrypt
+        cred: api access credential
+
+    Returns:
+        Encrypted value
     '''
     box = nacl.secret.SecretBox(key)
     encrypted = box.encrypt(cred)
+    print("Encrypted val: {}".format(encrypted))
     return encrypted
 
 def decrypt_credential(key, cred):
     '''
+    It decrypts the credential to access API
+
+    Args:
+        key: secret key 
+        cred: api credential
+
+    Returns:
+        Decrypted API credential
     '''
-    box = nacl.secret.SecretBox(key)
-    decrypted = box.decrypt(cred)
-    return decrypted
+    rkey = key[4:]
+    rCred = cred[5:]
+    byteKey = bytes.fromhex(rkey)
+    byteCred = bytes.fromhex(rCred)
+    box = nacl.secret.SecretBox(byteKey)
+    decrypted = box.decrypt(byteCred)
+    print("Decrypted val: {}".format(decrypted))
+    return decrypted.decode()
 
 def get_api_access_info():
     '''
+    Get API access information from end user
+
+    Args:
+        NA
+
+    Returns:
+        Received access info
     '''
     while True:
         loginID = input('Enter API Login Id: ')
@@ -486,7 +523,7 @@ def get_api_access_info():
             print('Invalid API login id entered')
 
     while True:
-        apiPwd = input('Enter API Password: ')
+        apiPwd = getpass.getpass('Enter API Password: ')
         if re.match(r'[0-9a-zA-Z]{32}', apiPwd):
             apiPwd = apiPwd.replace('\n', '')
             break
@@ -494,16 +531,28 @@ def get_api_access_info():
             print('Invalid API password entered')
 
     apiAccessInfo = loginID + ":" + apiPwd
-    return apiAccessInfo
+    return apiAccessInfo.encode()
 
 def manage_credentials(pDir):
+    '''
+    To perform credential handling process
+
+    Args:
+        pDir: current directory path
+
+    Returns:
+        NA
+    '''
+    secretList = []
     pKey = generate_key()
     apiAccessCred = get_api_access_info()
     encryptCred = encrypt_credential(pKey, apiAccessCred)
 
-    with open('.mcci-catena-provision-sigfox', 'ab') as f:
-        f.write(pKey + '\n')
-        f.write(encryptCred)
+    secretList.insert(0, "key=" + pKey.hex() + "\n")
+    secretList.insert(1, "cred=" + encryptCred.hex())
+
+    with open('.mcci-catena-provision-sigfox', 'a') as f:
+        f.writelines(secretList)
 
     absPath = os.path.join(pDir, '.mcci-catena-provision-sigfox')
     os.chmod(absPath, stat.S_IRUSR)
@@ -596,8 +645,6 @@ def generate_auth_credential(cred):
         It returns basic authentication key
 
     '''
-
-    ## concatCredential = loginId + ':' + password
     encodeCredential = cred.encode('ascii')
     base64EncodeCredential = base64.b64encode(encodeCredential)
     base64DecodeCredential = base64EncodeCredential.decode('ascii')
@@ -1033,8 +1080,8 @@ if __name__ == '__main__':
         sys.exit(1)
 
     # Turn off echo, before start provisioning
-    ## setechooff() 
-    ## checkcomms(oAppContext.fPermissive)
+    setechooff() 
+    checkcomms(oAppContext.fPermissive)
 
     # Check config file
     listDirContent = os.listdir(pDir)
@@ -1042,70 +1089,21 @@ if __name__ == '__main__':
         True for dirfile in listDirContent if dirfile == '.mcci-catena-provision-sigfox']
 
     if not configFile:
-        # oAppContext.fatal(
-        #     "sigfox-config.yml not found; add to path: {}".format(pDir)
-        # )
-        # pKey = generate_key()
-        # apiAccessCred = get_api_access_info()
-
-        # with open('.mcci-catena-provision-sigfox', 'ab') as f:
-        #     f.write()
-
-        # absPath = os.path.join(pDir, pName)
-        # os.chmod(absPath, stat.S_IRUSR)
         manage_credentials(pDir)
 
     if oAppContext.fRegister:
-        # yaml = ruamel.yaml.YAML()
-
-        # with open('sigfox-config.yml') as yf:
-        #     yData = yaml.load(yf)
-
-        # if yData['request_url']:
-        #     deviceUrl = yData['request_url']['device']
-        #     deviceTypeUrl = yData['request_url']['device_type']
-
-        # if ((yData['sigfox_api']['login'] is None) or 
-        #     (yData['sigfox_api']['login'] == '<login_id>')):
-        #     while True:
-        #         apiLoginID = input('Enter Sigfox API login id: ')
-        #         if re.match(r'[0-9a-f]{24}', apiLoginID):
-        #             yData['sigfox_api']['login'] = apiLoginID
-
-        #             with open('sigfox-config.yml', 'w') as wf:
-        #                 yaml.dump(yData, wf)
-                                        
-        #             break
-        #         else:
-        #             print('Invalid API login id entered.')
-        # else:
-        #     apiLoginID = yData['sigfox_api']['login']
-
-        # if ((yData['sigfox_api']['pwd'] is None) or 
-        #     (yData['sigfox_api']['pwd'] == '<password>')):
-        #     while True:
-        #         apiPwd = input('Enter Sigfox API password: ')
-        #         if re.match(r'[0-9a-f]{24}', apiPwd):
-        #             yData['sigfox_api']['pwd'] = apiPwd
-
-        #             with open('sigfox-config.yml', 'w') as wf:
-        #                 yaml.dump(yData, wf)
-                                        
-        #             break
-        #         else:
-        #             print('Invalid API login id entered.')
-        # else:
-        #     apiPwd = yData['sigfox_api']['pwd']
         with open('.mcci-catena-provision-sigfox', 'r') as f:
             lines = f.readlines()
 
-        if len(lines) != 2:
+        readCred = [line.rstrip() for line in lines]
+
+        if len(readCred) != 2:
             path = os.path.join(pDir, '.mcci-catena-provision-sigfox')
             os.chmod(path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
             os.remove('.mcci-catena-provision-sigfox')
             manage_credentials(pDir)
 
-        cred = decrypt_credential(lines[0].replace('\n', ''), lines[1])
+        cred = decrypt_credential(readCred[0], readCred[1])
 
         authCred = generate_auth_credential(cred)
 
