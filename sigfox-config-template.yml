@@ -1,7 +1,0 @@
-# Configuration fields and values
-sigfox_api:
-  login: <login_id>
-  pwd: <password>
-request_url:
-  device: https://api.sigfox.com/v2/devices/
-  device_type: https://api.sigfox.com/v2/device-types/
