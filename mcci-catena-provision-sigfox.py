@@ -252,8 +252,8 @@ def writecommand(sCommand):
         catena result if success; None and error message if fail.
         
     '''
-
-    oAppContext.debug(">>> {}".format(sCommand))
+    if not "key" in sCommand:
+        oAppContext.debug(">>> {}".format(sCommand))
 
     if comPort.in_waiting != 0:
         comPort.reset_input_buffer()
