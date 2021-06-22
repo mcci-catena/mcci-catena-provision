@@ -321,6 +321,7 @@ def setechooff():
     else:
         return True
 
+
 def getversion():
     '''
     Get the identity of the attached device.
@@ -455,6 +456,7 @@ def checkcomms(fPermissive):
         oAppContext.fatal("SysEUI not set")
         return False
 
+
 def generate_key():
     '''
     To generate secret key for encrypt and decrypt credential
@@ -467,6 +469,7 @@ def generate_key():
     '''
     key = nacl.utils.random(nacl.secret.SecretBox.KEY_SIZE)
     return key
+
 
 def encrypt_credential(key, cred):
     '''
@@ -483,6 +486,7 @@ def encrypt_credential(key, cred):
     encrypted = box.encrypt(cred)
     print("Encrypted val: {}".format(encrypted))
     return encrypted
+
 
 def decrypt_credential(key, cred):
     '''
@@ -503,6 +507,7 @@ def decrypt_credential(key, cred):
     decrypted = box.decrypt(byteCred)
     print("Decrypted val: {}".format(decrypted))
     return decrypted.decode()
+
 
 def get_api_access_info():
     '''
@@ -533,6 +538,7 @@ def get_api_access_info():
     apiAccessInfo = loginID + ":" + apiPwd
     return apiAccessInfo.encode()
 
+
 def manage_credentials(pDir):
     '''
     To perform credential handling process
@@ -557,6 +563,7 @@ def manage_credentials(pDir):
     absPath = os.path.join(pDir, '.mcci-catena-provision-sigfox')
     os.chmod(absPath, stat.S_IRUSR)
 
+
 def verify_response(stat, resp):
     '''
     Verify the http requests response code 
@@ -579,6 +586,7 @@ def verify_response(stat, resp):
         oAppContext.fatal("Error: API Requset Failed")
 
     return True
+
 
 def get_request(url, header):
     '''
@@ -603,6 +611,7 @@ def get_request(url, header):
     verify_response(responseCode, result)
 
     return result
+
 
 def post_request(url, header, data):
     '''
@@ -633,6 +642,7 @@ def post_request(url, header, data):
 
     return result
 
+
 def generate_auth_credential(cred):
     '''
     To generate the basic auth for http requests
@@ -650,6 +660,7 @@ def generate_auth_credential(cred):
     base64DecodeCredential = base64EncodeCredential.decode('ascii')
 
     return base64DecodeCredential
+
 
 def get_devicetypeid(dt_url, basic_auth):
     '''
@@ -682,6 +693,7 @@ def get_devicetypeid(dt_url, basic_auth):
         devTypeList.append(dtId['id'])
 
     return devTypeList
+
 
 def register_device(dt_url, d_url, basic_auth):
     '''
@@ -783,6 +795,7 @@ def register_device(dt_url, d_url, basic_auth):
     oAppContext.debug("Device Created: \n{}\n".format(pResult))
     return pResult
 
+
 def get_deviceinfo(d_url, basic_auth, device_id):
     '''
     Displays registered device information
@@ -811,6 +824,7 @@ def get_deviceinfo(d_url, basic_auth, device_id):
     oAppContext.debug("Device Info: \n{}\n".format(appResult))
 
     return appResult
+
 
 def expand(sLine):
     '''
@@ -908,28 +922,26 @@ def doscript(sFileName):
 
 
 def closeport(sPortName):
-        '''
-        Close serial port
+    '''
+    Close serial port
 
-        Args:
-            sPortName: serial port name
+    Args:
+        sPortName: serial port name
 
-        Returns: 
-            True if closed or None otherwise
+    Returns: 
+        True if closed or None otherwise
         
-        '''
-        
-        if comPort.is_open:
-                comPort.reset_input_buffer()
-                comPort.reset_output_buffer()
-                comPort.close()
-                oAppContext.debug('Port {} closed'.format(sPortName))
-                return True
-        else:
-                oAppContext.error('Port {} already closed'
-                                        .format(sPortName)
-                                        )
-                return None
+    '''
+
+    if comPort.is_open:
+        comPort.reset_input_buffer()
+        comPort.reset_output_buffer()
+        comPort.close()
+        oAppContext.debug('Port {} closed'.format(sPortName))
+        return True
+    else:
+        oAppContext.error('Port {} already closed'.format(sPortName))
+        return None
 
 ##############################################################################
 #
