@@ -259,19 +259,11 @@ This script communicates with catena to get information for register it in TTN n
 
 ### Notes
 
-1. You need to chose a directory for this script and supporting materials.
-If you use `git clone`, you'll specify the target directory; if you download
-the zip file from git, then you'll need to choose a place to unpack the
-files.
+1. You need to chose a directory for this script and supporting materials. If you use `git clone`, you'll specify the target directory; if you download the zip file from git, then you'll need to choose a place to unpack the files.
 
-2. Once the files are unpacked, you'll also need to get some additional
-files, in particular `ttnctl`. You can put this on your executable path, but
-the easiest thing is to put it in the same directory as the script.
+2. Once the files are unpacked, you'll also need to get some additional files, in particular `ttnctl`. You can put this on your executable path, but the easiest thing is to put it in the same directory as the script.
 
-3. When you get ttnctl, it will have a very long name specific to your
-operating system (like `ttnctl-windows-amd64.exe` on 64-bit Windows). Copy
-or rename the file to `ttnctl.exe` (on Windows) or `ttnctl` (on macOS and
-Linux).
+3. When you get ttnctl, it will have a very long name specific to your operating system (like `ttnctl-windows-amd64.exe` on 64-bit Windows). Copy or rename the file to `ttnctl.exe` (on Windows) or `ttnctl` (on macOS and Linux).
 
 4. You'll need to log in to the TTN console from command terminal using `ttnctl user login
 <ttnctl_access_code>`. Get the access code from [account.thethingsnetwork.org](https://account.thethingsnetwork.org/)
@@ -443,14 +435,9 @@ This script communicates with catena to get information for register it in Actil
 
 ### Notes
 
-1. You need to chose a directory for this script and supporting materials.
-If you use `git clone`, you'll specify the target directory; if you download
-the zip file from git, then you'll need to choose a place to unpack the
-files.
+1. You need to chose a directory for this script and supporting materials. If you use `git clone`, you'll specify the target directory; if you download the zip file from git, then you'll need to choose a place to unpack the files.
 
-2. Once the files are unpacked, please open the `actility-config.yml` file and 
-edit client_id & client_credentials. For e.g. client_id : tpe-eu-api/xxxxx@yyy.com, 
-client_credentials: \<your_password\>
+2. Once the files are unpacked, please open the `actility-config.yml` file and edit client_id & client_credentials. For e.g. client_id : tpe-eu-api/xxxxx@yyy.com, client_credentials: \<your_password\>
 
 ### Using `mcci-catena-provision-actility.py`
 
@@ -584,21 +571,11 @@ This script communicates with catena to get information for register it in Heliu
 
 ### Notes
 
-1. You need to chose a directory for this script and supporting materials.
-If you use `git clone`, you'll specify the target directory; if you download
-the zip file from git, then you'll need to choose a place to unpack the
-files.
+1. You need to chose a directory for this script and supporting materials.If you use `git clone`, you'll specify the target directory; if you download the zip file from git, then you'll need to choose a place to unpack the files.
 
-2. Once the files are unpacked, you'll also need to get some additional
-files, in particular `helium-console-cli`. You can put this on your executable path, but
-the easiest thing is to put it in the same directory as the script.
+2. Once the files are unpacked, you'll also need to get some additional files, in particular `helium-console-cli`. You can put this on your executable path, but the easiest thing is to put it in the same directory as the script.
 
-3. The first time you use the CLI, you will need to provide an API key. To create an 
-account key, go to your [profile](https://console.helium.com/profile) on 
-Helium Console. From the top right corner, click: `Account -> Profile`. From there, 
-you may generate a key with a specific name and role. The key will only display once. 
-The first time you run the provisioning script, it will prompt you for this key. It 
-will save the key in a local file: `.helium-console-config.toml`.
+3. The first time you use the CLI, you will need to provide an API key. To create an account key, go to your [profile](https://console.helium.com/profile) on Helium Console. From the top right corner, click: `Account -> Profile`. From there, you may generate a key with a specific name and role. The key will only display once. The first time you run the provisioning script, it will prompt you for this key. It will save the key in a local file: `.helium-console-config.toml`.
 
 ### Using `mcci-catena-provision-helium.py`
 
@@ -787,19 +764,18 @@ python mcci-catena-provision-sigfox.py -[options]
 ### Catena Script File
 
 A number of provisioning scripts are provided for setting up Catenas; the
-files are named as `{script}.cat`. If your Catena has already been set up at
-the factory, you can use `catena-otaa.cat`.  Here is the base script used for
+files are named as `{script}.cat`. Here is the base script used for
 sigfox network:
 
-* `catena-sigfox-base-otaa.cat` - Configure a Catena for OTAA
+* `catena-sigfox-base.cat` - Configure a Catena
 
 The scripts conventionally get information from variables that are set up
 by you or by the script. The variables are:
 
 * `BASENAME` - The base name to be used for devices. This must be a legal
-DNS-like name (letters, digits and dashes). The device EUI is appended to
+DNS-like name (letters, digits and dashes). The device ID is appended to
 the name. If you want a dash as a separator between the basename and the
-DEVEUI, you must end the basename value with a dash.
+device ID, you must end the basename value with a dash.
 * `DEVTYPEID` - The device type id is a unique identifier for the application on the network.
 * `PAC` - The PAC is a unique value for proves the ownership of end-device on the network.
 * `KEY` - The key is a unique identifier which used to secure the communication between the device and the network. It is only known by the device and by the application.
