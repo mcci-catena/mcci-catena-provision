@@ -27,14 +27,12 @@ import json
 import os
 import re
 import stat
-import subprocess
 import sys
 
 # Lib imports
 import nacl.secret
 import nacl.utils
 import requests
-import ruamel.yaml
 import serial
 from serial.tools import list_ports
 
