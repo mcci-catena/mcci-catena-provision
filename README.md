@@ -252,8 +252,8 @@ This script communicates with catena to get information for register it in TTN n
 
 * Python 3.5 or greater on windows, linux and mac (Installation steps [here](https://realpython.com/installing-python/))
 * Install Python packages [pyserial](https://pyserial.readthedocs.io/en/latest/pyserial.html#installation) and [pexpect](https://pexpect.readthedocs.io/en/stable/install.html) using following commands in terminal/command prompt:
-  1. `pip3 install pyserial`
-  2. `pip3 install pexpect`
+    1. `pip3 install pyserial`
+    2. `pip3 install pexpect`
 * The Things Network CLI. Download it [here](https://www.thethingsnetwork.org/docs/network/cli/quick-start.html)
 * Catena script file (It should be placed in the same repository as the script)
 
@@ -427,9 +427,9 @@ This script communicates with catena to get information for register it in Actil
 
 * Python 3.5 or greater on windows, linux and mac (Installation steps [here](https://realpython.com/installing-python/))
 * Install Python packages [pyserial](https://pyserial.readthedocs.io/en/latest/pyserial.html#installation), [requests](https://requests.readthedocs.io/en/master/) and [ruamel.yaml](https://yaml.readthedocs.io/en/latest/) using following commands in terminal/command prompt:
-  1. `pip3 install pyserial`
-  2. `pip3 install requests`
-  3. `pip3 install ruamel.yaml`
+    1. `pip3 install pyserial`
+    2. `pip3 install requests`
+    3. `pip3 install ruamel.yaml`
 * Actility user account
 * Catena script file (It should be placed in the same repository as the script)
 
@@ -564,8 +564,8 @@ This script communicates with catena to get information for register it in Heliu
 
 * Python 3.5 or greater on windows, linux and mac (Installation steps [here](https://realpython.com/installing-python/))
 * Install Python packages [pyserial](https://pyserial.readthedocs.io/en/latest/pyserial.html#installation) and [pexpect](https://pexpect.readthedocs.io/en/stable/install.html) using following commands in terminal/command prompt:
-  1. `pip3 install pyserial`
-  2. `pip3 install pexpect`
+    1. `pip3 install pyserial`
+    2. `pip3 install pexpect`
 * Helium console CLI. Download it [here](https://github.com/helium/helium-console-cli/releases)
 * Catena script file (It should be placed in the same repository as the script)
 
@@ -726,8 +726,8 @@ This script communicates with catena to get information for register it in sigfo
 
 * Python 3.5 or greater on windows, linux and mac (Installation steps [here](https://realpython.com/installing-python/))
 * Install Python packages [pyserial](https://pyserial.readthedocs.io/en/latest/pyserial.html#installation), [pynacl](https://pynacl.readthedocs.io/en/latest/install/) and [requests](https://requests.readthedocs.io/en/master/) using following commands in terminal/command prompt:
-  1. `pip3 install pyserial`
-  2. `pip3 install requests`
+    1. `pip3 install pyserial`
+    2. `pip3 install requests`
 * Sigfox backend user account
   > The Sigfox backend provides a web application interface for device management and configuration of data integration, as well as standards based web APIs to automate the device management and implement the data integration. For login Sigfox backend, go to [https://backend.sigfox.com/](https://backend.sigfox.com/). To find the backend API credentials, follow the steps mentioned [here](https://support.sigfox.com/docs/api-credential-creation). In case of queries about backend, please contact Sigfox [support](https://support.sigfox.com/).
 * Catena script file (It should be placed in the same repository as the script)
