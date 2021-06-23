@@ -482,7 +482,6 @@ def encrypt_credential(key, cred):
     '''
     box = nacl.secret.SecretBox(key)
     encrypted = box.encrypt(cred)
-    print("Encrypted val: {}".format(encrypted))
     return encrypted
 
 
@@ -723,7 +722,7 @@ def register_device(dt_url, d_url, basic_auth):
     }
 
     if ((not oAppContext.dVariables['SYSEUI']) or 
-        (oAppContext.dVariables['SYSEUI'] == 'SYSEUI-NOT-SET')):
+        (oAppContext.dVariables['SYSEUI'] == '{SYSEUI-NOT-SET}')):
         while True:
             devEUI = input('Enter Device EUI: ')
             if re.match(r'[0-9A-F]{16}', devEUI):
