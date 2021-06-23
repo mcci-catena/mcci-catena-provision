@@ -725,7 +725,7 @@ This script communicates with catena to get information for register it in sigfo
 ### Required
 
 * Python 3.5 or greater on windows, linux and mac (Installation steps [here](https://realpython.com/installing-python/))
-* Install Python packages [pyserial](https://pyserial.readthedocs.io/en/latest/pyserial.html#installation) and [requests](https://requests.readthedocs.io/en/master/) using following commands in terminal/command prompt:
+* Install Python packages [pyserial](https://pyserial.readthedocs.io/en/latest/pyserial.html#installation), [pynacl](https://pynacl.readthedocs.io/en/latest/install/) and [requests](https://requests.readthedocs.io/en/master/) using following commands in terminal/command prompt:
   1. `pip3 install pyserial`
   2. `pip3 install requests`
 * Sigfox backend user account
@@ -735,10 +735,7 @@ This script communicates with catena to get information for register it in sigfo
 
 ### Notes
 
-> You need to chose a directory for this script and supporting materials.
-If you use `git clone`, you'll specify the target directory; if you download
-the zip file from git, then you'll need to choose a place to unpack the
-files.
+> You need to chose a directory for this script and supporting materials. If you use `git clone`, you'll specify the target directory; if you download the zip file from git, then you'll need to choose a place to unpack the files.
 
 ### Using `mcci-catena-provision-sigfox.py`
 
@@ -772,10 +769,7 @@ sigfox network:
 The scripts conventionally get information from variables that are set up
 by you or by the script. The variables are:
 
-* `BASENAME` - The base name to be used for devices. This must be a legal
-DNS-like name (letters, digits and dashes). The device ID is appended to
-the name. If you want a dash as a separator between the basename and the
-device ID, you must end the basename value with a dash.
+* `BASENAME` - The base name to be used for devices. This must be a legal DNS-like name (letters, digits and dashes). The device ID is appended to the name. If you want a dash as a separator between the basename and the device ID, you must end the basename value with a dash.
 * `DEVTYPEID` - The device type id is a unique identifier for the application on the network.
 * `PAC` - The PAC is a unique value for proves the ownership of end-device on the network.
 * `KEY` - The key is a unique identifier which used to secure the communication between the device and the network. It is only known by the device and by the application.
@@ -783,7 +777,7 @@ device ID, you must end the basename value with a dash.
 ### Example (`mcci-catena-provision-sigfox.py`)
 
 ```console
-python mcci-catena-provision-sigfox.py -D -port COM32 -permissive -r -V BASENAME=device- -V DEVID=26240FE -V KEY=0123456789ABCDEF0123456789ABCDEF -V PAC=FEDCBA0987654321 -V DEVTYPEID=501f6a9a4175811910adf528 -s catena-sigfox-base-otaa.cat
+python mcci-catena-provision-sigfox.py -D -port COM32 -permissive -r -V BASENAME=device- -V DEVID=26240FE -V KEY=0123456789ABCDEF0123456789ABCDEF -V PAC=0123456789ABCDEF -V DEVTYPEID=501f6a9a4175811910adf528 -s catena-sigfox-base.cat
 
 Port COM32 opened
 >>> system echo off
@@ -817,18 +811,16 @@ MCCI-Arduino-BSP-Version: 2.8.0
 <<< 00-02-cc-01-00-00-06-22
 OK
 
-
- Catena Type: Catena 4612
- Platform Version: 0.19.0.30
- SysEUI: 0002cc0100000622
+Enter API Login Id: **redacted**
+Enter API Password:
 
 Device Created:
 {'id': '26240FE'}
 
 Device Info:
 {'id': '26240FE', 'name': 'device-26240FE', 'satelliteCapable': False, 'repeater
-': False, 'messageModulo': 4096, 'state': 0, 'comState': 5, 'pac': 'FEDCBA098765
-4322', 'location': {'lat': 0.0, 'lng': 0.0}, 'deviceType': {'id': '501f6a9a41758
+': False, 'messageModulo': 4096, 'state': 0, 'comState': 5, 'pac': '0123456789AB
+CDEF', 'location': {'lat': 0.0, 'lng': 0.0}, 'deviceType': {'id': '501f6a9a41758
 11910adf528'}, 'group': {'id': '4ab30f462564325177713118'}, 'lqi': 4, 'creationT
 ime': 1617197032746, 'modemCertificate': {'id': '5fabcd5d80bd5658641e4415'}, 'pr
 ototype': True, 'automaticRenewal': True, 'automaticRenewalStatus': 1, 'createdB
@@ -841,11 +833,7 @@ DoScript: catena-sigfox-base-otaa.cat
 
 <<< OK
 
->>> sigfox configure pac FEDCBA0987654322
-
-<<< OK
-
->>> sigfox configure key 0123456789ABCDEF0123456789ABCDEF
+>>> sigfox configure pac 0123456789ABCDEF
 
 <<< OK
 
