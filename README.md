@@ -244,11 +244,11 @@ This script communicates with catena to get information for register it in Actil
 
 ### Required
 
-* Python 3.* (Installation steps [here](https://realpython.com/installing-python/))
+* Python 3.5 or greater on windows, linux and mac (Installation steps [here](https://realpython.com/installing-python/))
 * Install Python packages [pyserial](https://pyserial.readthedocs.io/en/latest/pyserial.html#installation), [requests](https://requests.readthedocs.io/en/master/) and [ruamel.yaml](https://yaml.readthedocs.io/en/latest/) using following commands in terminal/command prompt:
-  1. `pip install pyserial`
-  2. `pip install requests`
-  3. `pip install ruamel.yaml`
+  1. `pip3 install pyserial`
+  2. `pip3 install requests`
+  3. `pip3 install ruamel.yaml`
 * Actility user account
 * Catena Script File (It should be placed in the same repository as the script)
 
@@ -386,10 +386,10 @@ This script communicates with catena to get information for register it in Heliu
 
 ### Required
 
-* Python 3.* (Installation steps [here](https://realpython.com/installing-python/))
+* Python 3.5 or greater on windows, linux and mac (Installation steps [here](https://realpython.com/installing-python/))
 * Install Python packages [pyserial](https://pyserial.readthedocs.io/en/latest/pyserial.html#installation) and [pexpect](https://pexpect.readthedocs.io/en/stable/install.html) using following commands in terminal/command prompt:
-  1. `pip install pyserial`
-  2. `pip install pexpect`
+  1. `pip3 install pyserial`
+  2. `pip3 install pexpect`
 * Helium console CLI. Download it [here](https://github.com/helium/helium-console-cli/releases)
 * Catena Script File (It should be placed in the same repository as the script)
 
@@ -554,7 +554,7 @@ No errors detected
 
 ## `mcci_catena_provision_ttn.py`
 
-This script communicates with catena to get information for register it in TTN network via ttn-lw-cli, then it loads the catena script to device for complete the provisioning process.
+This script communicates with Catena to get information for register it in TTN network via `ttn-lw-cli`, then it loads the Catena script to device for complete the provisioning process.
 
 ### Required
 
@@ -568,9 +568,9 @@ This script communicates with catena to get information for register it in TTN n
 
 1. You need to chose a directory for this script and supporting materials. If you use `git clone`, you'll specify the target directory; if you download the zip file from git, then you'll need to choose a place to unpack the files.
 
-2. Set TTN cli path as environment variable `TTNLWCLI`
+2. Set TTN cli path as environment variable `TTNLWCLI`.
 
-3. You'll need to log in to the TTN console from command terminal using `ttn-lw-cli login`
+3. You'll need to generate configuration file for `ttn-lw-cli` from command terminal using the command `ttn-lw-cli use [host]`. Then, log in to the TTN console using `ttn-lw-cli login`.
 
 ### Using `mcci_catena_provision_ttn.py`
 
