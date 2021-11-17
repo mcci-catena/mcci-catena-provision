@@ -2,7 +2,7 @@
 
 ##############################################################################
 # 
-# Module: mcci-catena-provision-actility.py
+# Module: mcci_catena_provision_actility.py
 #
 # Function:
 #     Provision a catena device through Actility API
