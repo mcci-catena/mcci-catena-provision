@@ -33,23 +33,29 @@ This repository contains two programs.
     - [Usage: `provision-ttn.sh`](#usage-provision-ttnsh)
     - [Environment Variables](#environment-variables)
     - [Example](#example)
-- [`mcci-catena-provision-actility.py`](#mcci-catena-provision-actilitypy)
+- [`mcci_catena_provision_actility.py`](#mcci_catena_provision_actilitypy)
     - [Required](#required)
     - [Notes](#notes)
-    - [Using `mcci-catena-provision-actility.py`](#using-mcci-catena-provision-actilitypy)
+    - [Using `mcci_catena_provision_actility.py`](#using-mcci_catena_provision_actilitypy)
     - [Catena Script File](#catena-script-file)
-    - [Example (`mcci-catena-provision-actility.py`)](#example-mcci-catena-provision-actilitypy)
-- [`mcci-catena-provision-helium.py`](#mcci-catena-provision-heliumpy)
+    - [Example (`mcci_catena_provision_actility.py`)](#example-mcci_catena_provision_actilitypy)
+- [`mcci_catena_provision_helium.py`](#mcci_catena_provision_heliumpy)
     - [Required](#required-1)
     - [Notes](#notes-1)
-    - [Using `mcci-catena-provision-helium.py`](#using-mcci-catena-provision-heliumpy)
+    - [Using `mcci_catena_provision_helium.py`](#using-mcci_catena_provision_heliumpy)
     - [Catena Script File](#catena-script-file-1)
-    - [Example (`mcci-catena-provision-helium.py`)](#example-mcci-catena-provision-heliumpy)
-- [`mcci_catena_provision_ttn.py`](#mcci_catena_provision_ttnpy)
+    - [Example (`mcci_catena_provision_helium.py`)](#example-mcci_catena_provision_heliumpy)
+- [`mcci_catena_provision_sigfox.py`](#mcci_catena_provision_sigfoxpy)
     - [Required](#required-2)
     - [Notes](#notes-2)
-    - [Using `mcci_catena_provision_ttn.py`](#using-mcci_catena_provision_ttnpy)
+    - [Using `mcci_catena_provision_sigfox.py`](#using-mcci_catena_provision_sigfoxpy)
     - [Catena Script File](#catena-script-file-2)
+    - [Example (`mcci_catena_provision_sigfox.py`)](#example-mcci_catena_provision_sigfoxpy)
+- [`mcci_catena_provision_ttn.py`](#mcci_catena_provision_ttnpy)
+    - [Required](#required-3)
+    - [Notes](#notes-3)
+    - [Using `mcci_catena_provision_ttn.py`](#using-mcci_catena_provision_ttnpy)
+    - [Catena Script File](#catena-script-file-3)
     - [Example (`mcci_catena_provision_ttn.py`)](#example-mcci_catena_provision_ttnpy)
 - [Credits](#credits)
 
@@ -238,7 +244,7 @@ system configure operatingflags 1
 ./mcci-catena-provision.bri: No errors detected
 ```
 
-## `mcci-catena-provision-actility.py`
+## `mcci_catena_provision_actility.py`
 
 This script communicates with catena to get information for register it in Actility network via Thingpark Enterprise API, then it loads the catena script to device for complete the provisioning process.
 
@@ -263,10 +269,10 @@ files.
 edit client_id & client_credentials. For e.g. client_id : tpe-eu-api/xxxxx@yyy.com, 
 client_credentials: \<your_password\>
 
-### Using `mcci-catena-provision-actility.py`
+### Using `mcci_catena_provision_actility.py`
 
 ```
-python mcci-catena-provision-actility.py -[options]
+python mcci_catena_provision_actility.py -[options]
 ```
 
 `-[options]` may be any of the following:
@@ -309,10 +315,10 @@ DEVEUI, you must end the basename value with a dash.
 * `DEVEUI` - The device EUI is a unique 64 bit identifier for the end-device on the network.
 * `APPKEY` - The App key is a unique 128 bit identifier which used to secure the communication between the device and the network. It is only known by the device and by the application.
 
-### Example (`mcci-catena-provision-actility.py`)
+### Example (`mcci_catena_provision_actility.py`)
 
 ```console
-python mcci-catena-provision-actility.py -D -port COM25 -permissive -r -V BASENAME=catprov- -V APPEUI=70B3D53260000246 -V APPKEY=0123456789ABCDEF0123456789ABCDEF -V MODEL=LORA/GenericA.1revB_IN865_Rx2-SF12 -V APPID=mcci_chennai_mqtt_server -s catenainit-otaa.cat
+python mcci_catena_provision_actility.py -D -port COM25 -permissive -r -V BASENAME=catprov- -V APPEUI=70B3D53260000246 -V APPKEY=0123456789ABCDEF0123456789ABCDEF -V MODEL=LORA/GenericA.1revB_IN865_Rx2-SF12 -V APPID=mcci_chennai_mqtt_server -s catenainit-otaa.cat
 
 Port COM25 opened
 >>> system echo off
@@ -380,7 +386,7 @@ No errors detected
 
 ```
 
-## `mcci-catena-provision-helium.py`
+## `mcci_catena_provision_helium.py`
 
 This script communicates with catena to get information for register it in Helium network via Helium console cli, then it loads the catena script to device for complete the provisioning process.
 
@@ -411,10 +417,10 @@ you may generate a key with a specific name and role. The key will only display 
 The first time you run the provisioning script, it will prompt you for this key. It 
 will save the key in a local file: `.helium-console-config.toml`.
 
-### Using `mcci-catena-provision-helium.py`
+### Using `mcci_catena_provision_helium.py`
 
 ```bash
-python mcci-catena-provision-helium.py -[options]
+python mcci_catena_provision_helium.py -[options]
 ```
 
 `-[options]` may be any of the following:
@@ -457,10 +463,10 @@ DEVEUI, you must end the basename value with a dash.
 * `DEVEUI` - The device EUI is a unique 64 bit identifier for the end-device on the network.
 * `APPKEY` - The App key is a unique 128 bit identifier which used to secure the communication between the device and the network. It is only known by the device and by the application.
 
-### Example (`mcci-catena-provision-helium.py`)
+### Example (`mcci_catena_provision_helium.py`)
 
 ```console
-python mcci-catena-provision-helium.py -D -port COM25 -permissive -r -V APPEUI=000A000100000047 -V APPKEY=0123456789ABCDEF0123456789ABCDEF -V BASENAME=catena4470- -s catenainit-otaa.cat
+python mcci_catena_provision_helium.py -D -port COM25 -permissive -r -V APPEUI=000A000100000047 -V APPKEY=0123456789ABCDEF0123456789ABCDEF -V BASENAME=catena4470- -s catenainit-otaa.cat
 
 Port COM25 opened
 >>> system echo off
@@ -548,6 +554,139 @@ DoScript: catenainit-otaa.cat
 <<< OK
 
 Port COM25 closed
+No errors detected
+
+```
+
+## `mcci_catena_provision_sigfox.py`
+
+This script communicates with catena to get information for register it in sigfox network via sigfox API, then it loads the catena script to device for complete the provisioning process.
+
+### Required
+
+* Python 3.5 or greater on windows, linux and mac (Installation steps [here](https://realpython.com/installing-python/))
+* Install Python packages [pyserial](https://pyserial.readthedocs.io/en/latest/pyserial.html#installation), [pynacl](https://pynacl.readthedocs.io/en/latest/install/) and [requests](https://requests.readthedocs.io/en/master/) using following commands in terminal/command prompt:
+    1. `pip3 install pyserial`
+    2. `pip3 install PyNaCl`
+    3. `pip3 install requests`
+* Sigfox backend user account
+  > The Sigfox backend provides a web application interface for device management and configuration of data integration, as well as standards based web APIs to automate the device management and implement the data integration. For login Sigfox backend, go to [https://backend.sigfox.com/](https://backend.sigfox.com/). To find the backend API credentials, follow the steps mentioned [here](https://support.sigfox.com/docs/api-credential-creation). In case of queries about backend, please contact Sigfox [support](https://support.sigfox.com/).
+* Catena script file (It should be placed in the same repository as the script)
+  > The tool depends on your device being able to get commands over a serial port. When you use the tool, you must give it a script that tells the tool how to communicate with the device. These scripts are traditionally called "Catena script files", and have the extension `.cat`. The tool uses the specified script to Sigfox credentials into the device over the device serial port. The script can also do application-specific setup (so you can combine steps during production); but that's not in scope for this discussion. If you're using MCCI Catena devices, start by using the `catena-sigfox-base.cat` script that accompanies this repository. If you've modified the command language, or are using a different device, you may need to modify the script. In that case, please use `catena-sigfox-base.cat` as a starting point.
+
+### Notes
+
+> You need to chose a directory for this script and supporting materials. If you use `git clone`, you'll specify the target directory; if you download the zip file from git, then you'll need to choose a place to unpack the files.
+
+### Using `mcci_catena_provision_sigfox.py`
+
+```bash
+python mcci_catena_provision_sigfox.py -[options]
+```
+
+`-[options]` may be any of the following:
+
+* `-D` - enables debug output.
+* `-port` - selects the COM port to be used. For Example: `-port COM11` (windows) or `-port /dev/tty*` (linux) or `-port /dev/cu.*` (Mac)
+* `-baud` - sets the desired baud rate. The default is 115200.
+* `-info` - outputs information about the Catena to STDOUT.
+* `-v` - selects verbose mode.
+* `-V` - name=value defines a variable named name, which can subsequently be used in ttnctl application configuration. This option is cumulative. You may use it many times to define different variables. For example, `-V DEVID=1415D16 -V KEY=0123456789ABCDEF0123456789ABCDEF -V BASENAME=device- -V PAC=0123456789ABCDEF01234567 -V DEVTYPEID=0123456789abcdef01234567`
+* `-echo` - causes script lines.
+* `-nowrite` - disable writing commands from script file to the Catena.
+* `-permissive` - helps to set SYSEUI, if it isn't set
+* `-r` - register the device in actility network
+* `-s` - specifies the mcci-catena-provision script to be used for loading the information into the Catena.
+* `-Werror` - says that any warning messages should be promoted to errors, resulting in error messages and non-zero exit status.
+
+### Catena Script File
+
+A number of provisioning scripts are provided for setting up Catenas; the
+files are named as `{script}.cat`. Here is the base script used for
+sigfox network:
+
+* `catena-sigfox-base.cat` - Configure a Catena
+
+The scripts conventionally get information from variables that are set up
+by you or by the script. The variables are:
+
+* `BASENAME` - The base name to be used for devices. This must be a legal DNS-like name (letters, digits and dashes). The device ID is appended to the name. If you want a dash as a separator between the basename and the device ID, you must end the basename value with a dash.
+* `DEVTYPEID` - The device type id is a unique identifier for the application on the network.
+* `PAC` - The PAC is a unique value for proves the ownership of end-device on the network.
+* `KEY` - The key is a unique identifier which used to secure the communication between the device and the network. It is only known by the device and by the application.
+
+### Example (`mcci_catena_provision_sigfox.py`)
+
+```console
+python mcci_catena_provision_sigfox.py -D -port COM32 -permissive -r -V BASENAME=device- -V DEVID=26240FE -V KEY=0123456789ABCDEF0123456789ABCDEF -V PAC=0123456789ABCDEF -V DEVTYPEID=501f6a9a4175811910adf528 -s catena-sigfox-base.cat
+
+Port COM32 opened
+>>> system echo off
+
+<<< system echo off
+OK
+
+CheckComms
+>>> system version
+
+Command sent: system version
+
+<<< Board: Catena 4612
+Platform-Version: 0.19.0.30
+Arduino-LoRaWAN-Version: 0.8.0
+Arduino-LMIC-Version: 3.3.0
+MCCIADK-Version: 0.2.2
+MCCI-Arduino-BSP-Version: 2.8.0
+OK
+
+Board: Catena 4612
+Platform-Version: 0.19.0.30
+Arduino-LoRaWAN-Version: 0.8.0
+Arduino-LMIC-Version: 3.3.0
+MCCIADK-Version: 0.2.2
+MCCI-Arduino-BSP-Version: 2.8.0
+
+
+>>> system configure syseui
+
+<<< 00-02-cc-01-00-00-06-22
+OK
+
+Enter API Login Id: **redacted**
+Enter API Password:
+
+Device Created:
+{'id': '26240FE'}
+
+Device Info:
+{'id': '26240FE', 'name': 'device-26240FE', 'satelliteCapable': False, 'repeater
+': False, 'messageModulo': 4096, 'state': 0, 'comState': 5, 'pac': '0123456789AB
+CDEF', 'location': {'lat': 0.0, 'lng': 0.0}, 'deviceType': {'id': '501f6a9a41758
+11910adf528'}, 'group': {'id': '4ab30f462564325177713118'}, 'lqi': 4, 'creationT
+ime': 1617197032746, 'modemCertificate': {'id': '5fabcd5d80bd5658641e4415'}, 'pr
+ototype': True, 'automaticRenewal': True, 'automaticRenewalStatus': 1, 'createdB
+y': '5eb5a674e833d96c28dffafd', 'lastEditionTime': 1617197032503, 'lastEditedBy'
+: '5eb5a674e833d96c28dffafd', 'activable': True}
+
+DoScript: catena-sigfox-base.cat
+
+>>> sigfox configure devid 26240FE
+
+<<< OK
+
+>>> sigfox configure pac 0123456789ABCDEF
+
+<<< OK
+
+>>> sigfox configure region 2
+
+<<< OK
+
+>>> sigfox configure encryption 0
+
+<<< OK
+
+Port COM32 closed
 No errors detected
 
 ```
