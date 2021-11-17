@@ -2,7 +2,7 @@
 
 ##############################################################################
 # 
-# Module: mcci-catena-provision-helium.py
+# Module: mcci_catena_provision_helium.py
 #
 # Function:
 #     Provision a catena device through Helium cli
