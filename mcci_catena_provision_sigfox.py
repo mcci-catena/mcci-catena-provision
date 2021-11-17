@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 ##############################################################################
 # 
 # Module: mcci_catena_provision_sigfox.py
