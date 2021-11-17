@@ -1,8 +1,26 @@
+##############################################################################
+# 
+# File: catena-4618-otaa.cat
 #
-# Configure a Catena 4618 in production. DEVEUI is from the -V DEVEUI=
-# switch; APPEUI is from the -V APPEUI=... switch, APPKEY
-# is from the -V APPKEY=... switch
+# Description:
+#     Configure a catena 4618 to join the lorawan network. DEVEUI is 
+#     from the -V DEVEUI=switch; APPEUI is from the -V APPEUI=... 
+#     switch, APPKEY is from the -V APPKEY=... switch
 #
+# Copyright notice:
+#     This file copyright (c) 2021 by
+#
+#         MCCI Corporation
+#         3520 Krums Corners Road
+#         Ithaca, NY  14850
+#
+#     See accompanying LICENSE file for copyright and license information.
+#
+# Author:
+#     Sivaprakash Veluthambi, MCCI   June 2021
+#
+##############################################################################
+
 system configure syseui ${DEVEUI}
 system configure platformguid b75ed77b-b06e-4b26-a968-9c15f222dfb2
 lorawan configure deveui ${DEVEUI}
