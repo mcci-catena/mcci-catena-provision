@@ -2,12 +2,12 @@
 
 ##############################################################################
 # 
-# Module: mcci-catena-provision-actility.py
+# Module: mcci_catena_provision_sigfox.py
 #
-# Function:
-#     Provision a catena device through Actility API
+# Description:
+#     Provision a catena device through sigfox API
 #
-# Copyright and License:
+# Copyright notice:
 #     This file copyright (c) 2021 by
 #
 #         MCCI Corporation
@@ -23,21 +23,25 @@
 
 # Built-in imports
 import argparse
+import base64
+import getpass
 import json
 import os
 import re
-import subprocess
+import stat
 import sys
 
 # Lib imports
+import nacl.secret
+import nacl.utils
 import requests
-import ruamel.yaml
 import serial
 from serial.tools import list_ports
 
 class AppContext:
     '''
-    class contains common attributes and default values 
+    Class contains common attributes and default values 
+
     '''
 
     def __init__(self):
@@ -54,13 +58,13 @@ class AppContext:
         self.fPermissive = False
         self.fRegister = False
         self.dVariables = {
-            'APPEUI': None,
-            'APPKEY': None,
+            'KEY': None,
             'DEVEUI': None,
-            'APPID' : None,
+            'DEVID' : None,
+            'DEVTYPEID': None,
             'BASENAME' : None,
             'SYSEUI' : None,
-            'MODEL': None,
+            'PAC': None
         }
         
 
@@ -68,7 +72,7 @@ class AppContext:
         '''
         Display warning message
 
-        Args: 
+        Args:
             msg: receives warning messages
 
         Returns: 
@@ -85,7 +89,7 @@ class AppContext:
         '''
         Display error message
 
-        Args: 
+        Args:
             msg: receives error messages
 
         Returns: 
@@ -102,7 +106,7 @@ class AppContext:
         '''
         Display error message and exit
 
-        Args: 
+        Args:
             msg: receives error messages
 
         Returns: 
@@ -118,7 +122,7 @@ class AppContext:
         '''
         Display debug message
 
-        Args: 
+        Args:
             msg: receives debug messages
 
         Returns: 
@@ -134,7 +138,7 @@ class AppContext:
         '''
         Display verbose message
 
-        Args: 
+        Args:
             msg: receives verbose message
 
         Returns: 
@@ -189,7 +193,7 @@ class AppContext:
 
 ##############################################################################
 #
-#   Provisioning Functions 
+#       Provisioning Functions 
 #
 ##############################################################################
 
@@ -197,7 +201,7 @@ def openport(sPortName):
     '''
     Open serial port
 
-    Args: 
+    Args:
         sPortName: serial port name
 
     Returns: 
@@ -217,16 +221,15 @@ def openport(sPortName):
     # Open port
     if not comPort.is_open:
         try:
-                        comPort.open()
-                        if comPort.is_open:
-                                oAppContext.debug("Port {} opened"
-                                                        .format(sPortName)
-                                                        )
-                                return True
+            comPort.open()
+            if comPort.is_open:
+                oAppContext.debug("Port {} opened".format(sPortName))
+                return True
         except Exception as err:
-            oAppContext.fatal("Can't open port {0} : {1}"
-                                                .format(sPortName, err)
-                                                )
+            oAppContext.fatal("Can't open port {0} : {1}".format(
+                sPortName, 
+                err)
+            )
             return None
     else:
         oAppContext.warning("Port {} is already opened".format(sPortName))
@@ -244,13 +247,13 @@ def writecommand(sCommand):
 
     Args: 
         sCommand: catena command
-
+        
     Returns: 
         catena result if success; None and error message if fail.
         
     '''
-
-    oAppContext.debug(">>> {}".format(sCommand))
+    if not "key" in sCommand:
+        oAppContext.debug(">>> {}".format(sCommand))
 
     if comPort.in_waiting != 0:
         comPort.reset_input_buffer()
@@ -283,7 +286,7 @@ def writecommand(sCommand):
     # Parse the results
     d= {'code': 'timed out', 'msg': None}
     sResult = re.search(
-        r'^([\s\S]*)^\n([OK]*[\s\S]*)\n$',
+        r'^([\s\S]*)^\n([OK]*[\s\S]*)\n$', 
         sResult, 
         re.MULTILINE)
         
@@ -318,6 +321,7 @@ def setechooff():
     else:
         return True
 
+
 def getversion():
     '''
     Get the identity of the attached device.
@@ -342,23 +346,23 @@ def getversion():
     oAppContext.verbose("sVersionWrap: {}".format(sVersionWrap))
         
     sVersionWrap = re.findall(
-        r'\r(\S+): ([ \S]+)\n',
-        sVersionWrap,
+        r'\r(\S+): ([ \S]+)\n', 
+        sVersionWrap, 
         re.MULTILINE)
-
     dResult = dict(sVersionWrap)
 
     if ('Board' in dResult and 'Platform-Version' in dResult):
         return dResult
     else:
-        oAppContext.error("Unrecognized version response: {}".format(sVersion))
+        oAppContext.error("Unrecognized version response: {}".format(
+            sVersion)
+        )
         return None
 
 
 def getsyseui(fPermissive):
     '''
     Get the system EUI for the attached device.
-
     The device is queried to get the system EUI, which is returned as a
     16-character hex string.
 
@@ -381,7 +385,6 @@ def getsyseui(fPermissive):
             oAppContext.error("Error getting syseui: {}".format(sEUI[1]))
         else:
             oAppContext.warning("Error getting syseui: {}".format(sEUI[1]))
-
         return None
 
     hexmatch = re.match(r'^(([0-9A-Fa-f]{2})-){7}([0-9A-Fa-f]{2})', sEUI)
@@ -401,7 +404,6 @@ def checkcomms(fPermissive):
 
     The device is queried to get the system EUI, which is returned as a
     16-character hex string, as well as the firmware version.
-
     ${SYSEUI} (aka oAppContext.dVariables['SYSEUI']) is set to the fetched
     syseui.
 
@@ -434,8 +436,7 @@ def checkcomms(fPermissive):
                         .format(
                             tVersion['Board'],
                             tVersion['Platform-Version'],
-                            sEUI
-                            )
+                            sEUI)
                         )
 
         if oAppContext.fInfo:
@@ -445,8 +446,7 @@ def checkcomms(fPermissive):
                                 .format(
                                     tVersion['Board'],
                                     tVersion['Platform-Version'],
-                                    sEUI
-                                    )
+                                    sEUI)
                                 )
 
         oAppContext.dVariables['SYSEUI'] = sEUI.upper()
@@ -457,32 +457,131 @@ def checkcomms(fPermissive):
         return False
 
 
-def verify_response(rType, stat, resp):
+def generate_key():
     '''
-    It will verify the response of API result whether it is success or not
+    To generate secret key for encrypt and decrypt credential
 
-    Args: 
-        rType: request type
+    Args:
+        NA
+
+    Returns:
+        Key in byte format
+    '''
+    key = nacl.utils.random(nacl.secret.SecretBox.KEY_SIZE)
+    return key
+
+
+def encrypt_credential(key, cred):
+    '''
+    It encrypts the API access credential 
+
+    Args:
+        key: secret key in bytes to encrypt
+        cred: api access credential
+
+    Returns:
+        Encrypted value
+    '''
+    box = nacl.secret.SecretBox(key)
+    encrypted = box.encrypt(cred)
+    return encrypted
+
+
+def decrypt_credential(key, cred):
+    '''
+    It decrypts the credential to access API
+
+    Args:
+        key: secret key 
+        cred: api credential
+
+    Returns:
+        Decrypted API credential
+    '''
+    rkey = key[4:]
+    rCred = cred[5:]
+    byteKey = bytes.fromhex(rkey)
+    byteCred = bytes.fromhex(rCred)
+    box = nacl.secret.SecretBox(byteKey)
+    decrypted = box.decrypt(byteCred)
+    print("Decrypted val: {}".format(decrypted))
+    return decrypted.decode()
+
+
+def get_api_access_info():
+    '''
+    Get API access information from end user
+
+    Args:
+        NA
+
+    Returns:
+        Received access info
+    '''
+    while True:
+        loginID = input('Enter API Login Id: ')
+        if re.match(r'[0-9a-zA-Z]{24}', loginID):
+            loginID = loginID.replace('\n', '')
+            break
+        else:
+            print('Invalid API login id entered')
+
+    while True:
+        apiPwd = getpass.getpass('Enter API Password: ')
+        if re.match(r'[0-9a-zA-Z]{32}', apiPwd):
+            apiPwd = apiPwd.replace('\n', '')
+            break
+        else:
+            print('Invalid API password entered')
+
+    apiAccessInfo = loginID + ":" + apiPwd
+    return apiAccessInfo.encode()
+
+
+def manage_credentials(pDir):
+    '''
+    To perform credential handling process
+
+    Args:
+        pDir: current directory path
+
+    Returns:
+        NA
+    '''
+    secretList = []
+    pKey = generate_key()
+    apiAccessCred = get_api_access_info()
+    encryptCred = encrypt_credential(pKey, apiAccessCred)
+
+    secretList.insert(0, "key=" + pKey.hex() + "\n")
+    secretList.insert(1, "cred=" + encryptCred.hex())
+
+    with open('.mcci-catena-provision-sigfox', 'a') as f:
+        f.writelines(secretList)
+
+    absPath = os.path.join(pDir, '.mcci-catena-provision-sigfox')
+    os.chmod(absPath, stat.S_IRUSR)
+
+
+def verify_response(stat, resp):
+    '''
+    Verify the http requests response code 
+
+    Args:
         stat: response code
-        resp: api result
-
+        resp: response message
+    
     Returns: 
-        True if success
+        True on success
 
     '''
-    requestType = rType
-    responseCode = stat
-    apiResponse = resp
-
-    if requestType == 'get_token' and responseCode == 200:
-        oAppContext.verbose("\nResponse Code: {}\n".format(responseCode))
-    elif requestType == 'create_device' and responseCode == 201:
-        oAppContext.verbose("\nResponse Code: {}\n".format(responseCode))
-    elif requestType == 'get_req' and responseCode == 200:
-        oAppContext.verbose("\nResponse Code: {}\n".format(responseCode))
+    if stat == 200:
+        oAppContext.verbose("\nResponse Code: {}\n".format(stat))
+    elif stat == 201:
+        oAppContext.verbose("\nResponse Code: {}\n".format(stat))
     else:
-        oAppContext.verbose("\nResponse Code: {}\n".format(responseCode))
-        oAppContext.verbose("\nResponse: \n{}\n".format(apiResponse))
+        oAppContext.verbose("\nResponse Code: {}\n".format(stat))
+        oAppContext.verbose("\nResponse: \n{}\n".format(resp))
         oAppContext.fatal("Error: API Requset Failed")
 
     return True
@@ -490,22 +589,17 @@ def verify_response(rType, stat, resp):
 
 def get_request(url, header):
     '''
-    It will perform GET request
+    HTTP GET method requests processed and fetch the results
 
-    Args: 
-        url: request url
-        header: header information
-        
+    Args:
+        url: URL to be processed 
+        header: HTTP request header
+
     Returns: 
-        return API response if success
+        HTTP response result 
 
     '''
-        
-    gUrl = url
-    gHeader = header
-    reqType = 'get_req'
-
-    response = requests.get(gUrl, headers=gHeader)
+    response = requests.get(url, headers=header)
 
     oAppContext.verbose("\nRequest Header:\n\n{}\n".format(
         response.request.headers)
@@ -513,40 +607,26 @@ def get_request(url, header):
 
     responseCode = response.status_code
     result = response.json()
-    verify_response(reqType, responseCode, result)
+    verify_response(responseCode, result)
 
     return result
 
 
 def post_request(url, header, data):
     '''
-    It will perform POST request
+    HTTP POST method requests processed and fetch the results
 
-    Args: 
-        url: request url
-        header: header information
-        data: POST data 
-        
+    Args:
+        url: URL to be processed 
+        header: HTTP request header
+        data: data to be posted
+
     Returns: 
-        return API response if success
-
+        HTTP response result 
+    
     '''
-
-    pUrl = url
-    pHeader = header
-    pData = data
-    reqType = None
-
-    if pHeader['Content-Type'] == 'application/json':
-        pData = json.dumps(pData)
-
-    if 'token' in pUrl:
-        reqType = 'get_token'
-
-    if 'devices' in pUrl:
-        reqType = 'create_device'
-        
-    response = requests.post(pUrl, headers=pHeader, data=pData)
+    data = json.dumps(data)
+    response = requests.post(url, headers=header, data=data)
 
     oAppContext.verbose("\nRequest Header:\n\n{}\n".format(
         response.request.headers)
@@ -557,108 +637,94 @@ def post_request(url, header, data):
 
     responseCode = response.status_code
     result = response.json()
-    verify_response(reqType, responseCode, result)
+    verify_response(responseCode, result)
 
     return result
 
 
-def get_token(url, tconfiginfo):
+def generate_auth_credential(cred):
     '''
-    Get token configuration details and send it to post request for 
-    receive token result
+    To generate the basic auth for http requests
 
-    Args: 
-        url: request url
-        tconfiginfo: config dict
+    Args:
+        loginId: API login id
+        password: API login password
 
     Returns: 
-        token details if success
+        It returns basic authentication key
 
     '''
+    encodeCredential = cred.encode('ascii')
+    base64EncodeCredential = base64.b64encode(encodeCredential)
+    base64DecodeCredential = base64EncodeCredential.decode('ascii')
 
-    reqUrl = url
-    dConfig = tconfiginfo
+    return base64DecodeCredential
 
-    headers = {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept': 'application/json'
-    }
 
-    pResult = post_request(reqUrl, headers, dConfig)
-    oAppContext.debug("Access Token Generated: \n{}\n".format(pResult))
-    return pResult
-
-def get_appinfo(url, token):
+def get_devicetypeid(dt_url, basic_auth):
     '''
-    Send request to receive application information
+    List the device type id available in sigfox console.
 
-    Args: 
-        url: request url
-        token: access token
+    Args:
+        dt_url: device type id url
+        basic_auth: Auth key
 
     Returns: 
-        application information if success
+        available device type id's
 
     '''
-
-    reqUrl = url
-    authToken = token
-    appInfo = dict()
+    reqUrl = dt_url
+    auth = basic_auth
+    devTypeList = []
 
     headers = {
-        'Accept': 'application/json',
-        'Authorization': None
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Authorization': None
     }
 
-    headers['Authorization'] = authToken
+    headers['Authorization'] = 'Basic ' + auth
 
     appResult = get_request(reqUrl, headers)
     oAppContext.verbose("Application Info Result: \n{}\n".format(appResult))
 
-    for i in range(len(appResult)):
-        appInfo[appResult[i]['ref']] = appResult[i]['name']
-        
-    return appInfo
+    for dtId in appResult['data']:
+        devTypeList.append(dtId['id'])
+
+    return devTypeList
 
 
-def create_device(dUrl, rUrl, authtoken, dProfId):
-    ''' 
-    Get device creation information and send post request for create a 
-    new device. It also verify the device configuration details before 
-    sending post request
+def register_device(dt_url, d_url, basic_auth):
+    '''
+    Registers device on sigfox backend
 
-    Args: 
-        dUrl: device creation request url
-        rUrl: application info request url
-        authtoken: access token
-        dProfId: device profile id dict
+    Args:
+        dt_url: device type id url
+        d_url: device url
+        basic_auth: auth key
+        dev_info: device post info
 
     Returns: 
-        created device result if success
+        registered device id
 
     '''
-
+    
     headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': None
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Authorization': None
     }
 
     dCreateDevConfig = {
-        'name': None,
-        'EUI': None,
-        'activationType': 'OTAA',
-        'deviceProfileId': None,
-        'applicationEUI': None,
-        'applicationKey': None
+                'id': None,
+                'name': None,
+                'prototype': True,
+                'deviceTypeId': None,
+                'pac': None
     }
 
-    reqUrl = dUrl
-    routeUrl = rUrl
-    headers['Authorization'] = authtoken
-
     if ((not oAppContext.dVariables['SYSEUI']) or 
-        (oAppContext.dVariables['SYSEUI'] == 'SYSEUI-NOT-SET')):
+        (oAppContext.dVariables['SYSEUI'] == '{SYSEUI-NOT-SET}')):
         while True:
             devEUI = input('Enter Device EUI: ')
             if re.match(r'[0-9A-F]{16}', devEUI):
@@ -670,137 +736,103 @@ def create_device(dUrl, rUrl, authtoken, dProfId):
                 print('Invalid device EUI entered.')
     else:
         devEUI = oAppContext.dVariables['SYSEUI']
-        dCreateDevConfig['EUI'] = devEUI.replace('\n', '')
+        # dCreateDevConfig['EUI'] = devEUI.replace('\n', '')
         oAppContext.dVariables['DEVEUI'] = devEUI.replace('\n', '')
 
-        devName = oAppContext.dVariables['BASENAME']
-        devNameExChar = oAppContext.dVariables['DEVEUI']
-        devNameResult = devName + devNameExChar[-4:]
-        dCreateDevConfig['name'] = devNameResult
-
-    if (not oAppContext.dVariables['MODEL']):
-        for k, v in dProfId.items():
-            for idx, val in enumerate(v):
-                print("{0}. {1}\n".format(idx+1, val))
-                
+    if (not oAppContext.dVariables['DEVID']):
         while True:
-            modIp = input('Select Device Profile ID (Enter 1 or 2): ')
-            if modIp == 1:
-                oAppContext.dVariables['MODEL'] = dProfId['profile_id'][modIp-1]
-                dCreateDevConfig['deviceProfileId'] = dProfId['profile_id'][modIp-1]
-                break
-            elif modIp == 2:
-                oAppContext.dVariables['MODEL'] = dProfId['profile_id'][modIp-1]
-                dCreateDevConfig['deviceProfileId'] = dProfId['profile_id'][modIp-1]
+            devID = input('Enter Device ID: ')
+            if re.match(r'[0-9A-Za-z]{4,}', devID):
+                oAppContext.dVariables['DEVID'] = devID.replace('\n', '')
                 break
             else:
-                print('Invalid number entered.')
+                print('Invalid device ID entered.')
     else:
-        dCreateDevConfig['deviceProfileId'] = oAppContext.dVariables['MODEL']
+        devID = oAppContext.dVariables['DEVID']          
 
-    if (not oAppContext.dVariables['APPEUI']):
+    dCreateDevConfig['id'] = devID
+    devName = oAppContext.dVariables['BASENAME']
+    devNameExChar = oAppContext.dVariables['DEVID']
+    devNameResult = devName + devNameExChar
+    dCreateDevConfig['name'] = devNameResult
+
+    getDevTypeIdInfo = get_devicetypeid(dt_url, basic_auth)
+    print(getDevTypeIdInfo)
+
+    # DEVTYPEID
+    if (not oAppContext.dVariables['DEVTYPEID']):
         while True:
-            appEUI = input('Enter App EUI: ')
-            if re.match(r'[0-9A-F]{16}', appEUI):
-                oAppContext.dVariables['APPEUI'] = appEUI
-                dCreateDevConfig['applicationEUI'] = appEUI
+            devTypeID = input('Enter Device ID: ')
+            if (re.match(r'[0-9a-f]{24}', devTypeID) and 
+                (devTypeID in getDevTypeIdInfo)):
+                oAppContext.dVariables['DEVID'] = devTypeID.replace('\n', '')
                 break
             else:
-                print('Invalid application EUI entered.')
+                print('Invalid device ID entered.')
     else:
-        dCreateDevConfig['applicationEUI'] = oAppContext.dVariables['APPEUI']
+        devTypeID = oAppContext.dVariables['DEVTYPEID']
+        if devTypeID not in getDevTypeIdInfo:
+            oAppContext.fatal("Invalid DEVTYPEID Received")
 
-    if (not oAppContext.dVariables['APPKEY']):
+    # PAC
+    if (not oAppContext.dVariables['PAC']):
         while True:
-            appKey = input('Enter App Key: ')
-            if re.match(r'[0-9A-F]{32}', appKey):
-                oAppContext.dVariables['APPKEY'] = appKey
-                dCreateDevConfig['applicationKey'] = appKey
+            pacId = input('Enter PAC Id: ')
+            if re.match(r'[0-9A-F]{16}', pacId):
+                oAppContext.dVariables['PAC'] = pacId.replace('\n', '')
                 break
             else:
-                print("Invalid application key entered.")
+                print('Invalid PAC Id entered')
     else:
-        dCreateDevConfig['applicationKey'] = oAppContext.dVariables['APPKEY']
+        pacId = oAppContext.dVariables['PAC']
 
-    if (not oAppContext.dVariables['APPID']):
-        appIdResult = get_appinfo(routeUrl, authtoken)
-        appIdList = [] 
-                
-        print("\nAPP ID    APPLICATION NAME")
-        print("\n==========================")
-        for rId, rName in appIdResult.items():
-            print("\n{}   - {}".format(rId, rName))
+    dCreateDevConfig['deviceTypeId'] = devTypeID
+    dCreateDevConfig['pac'] = pacId
+    headers['Authorization'] = 'Basic ' + basic_auth
 
-        while True:
-            appId = input('\nEnter App ID: ')
-            if re.match(r'[0-9]{5}',appId):
-                appId = str(appId)
-                appIdList.append(appId)
-                oAppContext.dVariables['APPID'] = appIdResult[appId]
-                dCreateDevConfig['routeRefs'] = appIdList
-                break
-            else:
-                print("Invalid application id entered.")
-    else:
-        appIdList = []
-        appFlag = 0
-        appName = oAppContext.dVariables['APPID']
-
-        appIdResult = get_appinfo(routeUrl, authtoken)
-
-        for rId, rName in appIdResult.items():
-            if (rName == appName):
-                appFlag = 1
-                appId = rId
-
-        if (appFlag == 1):
-            appIdList.append(appId)
-            dCreateDevConfig['routeRefs'] = appIdList
-        else:
-            oAppContext.fatal("Invalid APPID Received")
-
-    pResult = post_request(reqUrl, headers, dCreateDevConfig)
+    pResult = post_request(d_url, headers, dCreateDevConfig)
     oAppContext.debug("Device Created: \n{}\n".format(pResult))
     return pResult
 
 
-def get_deviceinfo(url, refId, authtoken):
+def get_deviceinfo(d_url, basic_auth, device_id):
     '''
-    Get device info and send request to receive created device information
+    Displays registered device information
 
-    Args: 
-        url: request url
-        refId: device reference id
-        authtoken: access token
+    Args:
+        d_url: device url
+        basic_auth: auth key
+        device_id: registered device id
 
     Returns: 
-        created device information result if success
+        registered device information
 
     '''
+    reqUrl = d_url + device_id
+    auth = basic_auth
 
     headers = {
-        'Accept': 'application/json',
-        'Authorization': None
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Authorization': None
     }
 
-    devId = refId
-    reqUrl = url + devId
-    headers['Authorization'] = authtoken
+    headers['Authorization'] = 'Basic ' + auth
 
-    gResult = get_request(reqUrl, headers)
-    oAppContext.debug("Device Info: \n{}\n".format(gResult))
-    return gResult
+    appResult = get_request(reqUrl, headers)
+    oAppContext.debug("Device Info: \n{}\n".format(appResult))
+
+    return appResult
 
 
 def expand(sLine):
     '''
     Perform macro expansion on a line of text
-
     This function is looking for strings of the form "${name}" in sLine. If
     ${name} was written, and name was found in the dict, name's value is
     used.
 
-    Args: 
+    Args:
         sLine: catena command line from cat file
 
     Returns: 
@@ -827,21 +859,21 @@ def expand(sLine):
 
         sResult = sPrefix + sValue
 
-    oAppContext.verbose("Expansion of {0}: {1}".format(sLine, sResult))
+    oAppContext.verbose("Expansion of {0}: {1}"
+                                .format(sLine, sResult)
+                                )
     return sResult
 
 
 def doscript(sFileName):
     '''
     Perform macro expansion on a line of text.
-
     The file is opened and read line by line.
-
     Blank lines are ignored. Any text after a '#' character is treated as a
     comment and discarded. Variables of the form ${name} are expanded. Any
     error causes the script to stop.
 
-    Args: 
+    Args:
         sFileName: script name
 
     Returns: 
@@ -873,13 +905,16 @@ def doscript(sFileName):
                 sys.stdout.write(line + '\n')
 
             if (oAppContext.fWriteEnable):
-                sResult = writecommand((re.sub('\n$', '', line)) + '\n')
+                sResult = writecommand(
+                                        (re.sub('\n$', '', line)) + '\n'
+                                        )
                 if not (type(sResult) is tuple and sResult[0] is None):
                     continue
                 else:
-                    oAppContext.error("Line: {0}\nError: \n{1}".format(
-                        line, 
-                        sResult[1])
+                    oAppContext.error(
+                                        "Line: {0}\n\
+                                        Error: \n{1}"
+                                        .format(line, sResult[1])
                     )
                     return False
     return True
@@ -889,14 +924,14 @@ def closeport(sPortName):
     '''
     Close serial port
 
-    Args: 
+    Args:
         sPortName: serial port name
 
     Returns: 
         True if closed or None otherwise
         
     '''
-        
+
     if comPort.is_open:
         comPort.reset_input_buffer()
         comPort.reset_output_buffer()
@@ -906,7 +941,6 @@ def closeport(sPortName):
     else:
         oAppContext.error('Port {} already closed'.format(sPortName))
         return None
-
 
 ##############################################################################
 #
@@ -918,6 +952,8 @@ if __name__ == '__main__':
         
     pName = os.path.basename(__file__)
     pDir = os.path.dirname(os.path.abspath(__file__))
+    deviceTypeUrl = 'https://api.sigfox.com/v2/device-types/'
+    deviceUrl = 'https://api.sigfox.com/v2/devices/'
 
     oAppContext = AppContext()
 
@@ -1007,7 +1043,9 @@ if __name__ == '__main__':
     oAppContext.sPort = opt.portname[0]
 
     if opt.baudrate and (opt.baudrate < 9600):
-        oAppContext.fatal("Baud rate too small: {}".format(opt.baudrate))
+        oAppContext.fatal("Baud rate too small: {}"
+                                  .format(opt.baudrate)
+                                  )
     elif opt.baudrate and (opt.baudrate > 9600):
         oAppContext.nBaudRate = opt.baudrate
 
@@ -1056,52 +1094,37 @@ if __name__ == '__main__':
     setechooff() 
     checkcomms(oAppContext.fPermissive)
 
+    # Check config file
     listDirContent = os.listdir(pDir)
-    configFile = [True for dirfile in listDirContent if dirfile == 'actility-config.yml']
+    configFile = [
+        True for dirfile in listDirContent if dirfile == '.mcci-catena-provision-sigfox']
 
     if not configFile:
-        oAppContext.fatal(
-            "actility-config.yml not found; add to path: {}".format(pDir)) 
+        manage_credentials(pDir)
 
     if oAppContext.fRegister:
-        yaml = ruamel.yaml.YAML()
+        with open('.mcci-catena-provision-sigfox', 'r') as f:
+            lines = f.readlines()
 
-        with open('actility-config.yml') as yf:
-            yData = yaml.load(yf)
+        readCred = [line.rstrip() for line in lines]
 
-        if yData['request_url']:
-            tokenUrl = yData['request_url']['get_token']
-            deviceUrl = yData['request_url']['device_info']
-            routeUrl = yData['request_url']['get_routes']
-                
-        if yData['device']:
-            profileIdInfo = dict(yData['device'])
+        if len(readCred) != 2:
+            path = os.path.join(pDir, '.mcci-catena-provision-sigfox')
+            os.chmod(path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+            os.remove('.mcci-catena-provision-sigfox')
+            manage_credentials(pDir)
 
-        if ((yData['token_generated']['access_token'] is None) or 
-            (yData['token_generated']['access_token'] == '<token_value>')):
-            tokenConfigInfo = dict(yData['token_config'])
-            tokenResult = get_token(tokenUrl, tokenConfigInfo)
-            accessToken = tokenResult['access_token']
-            yData['token_generated']['access_token'] = accessToken
+        cred = decrypt_credential(readCred[0], readCred[1])
 
-            with open('actility-config.yml', 'w') as wf:
-                yaml.dump(yData, wf)
-        else:
-            accessToken = yData['token_generated']['access_token']
+        authCred = generate_auth_credential(cred)
 
-        authToken = 'Bearer ' + accessToken
-
-        devCreationResult = create_device(
+        devCreationResult = register_device( 
+            deviceTypeUrl, 
             deviceUrl, 
-            routeUrl, 
-            authToken, 
-            profileIdInfo)
-        devRefId = devCreationResult['ref']
-
-        devInfoResult = get_deviceinfo(
-            deviceUrl, 
-            devRefId, 
-            authToken)
+            authCred)
+        devRefId = devCreationResult['id']
+        devInfoResult = get_deviceinfo(deviceUrl, authCred, devRefId)
+        oAppContext.dVariables['PAC'] = devInfoResult['pac']
 
         oAppContext.verbose("Vars Dict:\n {}".format(oAppContext.dVariables))
 
