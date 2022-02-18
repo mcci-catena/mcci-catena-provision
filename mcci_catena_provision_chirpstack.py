@@ -38,6 +38,12 @@ import requests
 import serial
 from serial.tools import list_ports
 
+# Globals
+global pName 
+pName = os.path.basename(__file__)
+global pDir 
+pDir = os.path.dirname(os.path.abspath(__file__))
+
 class AppContext:
     '''
     Class contains common attributes and default values 
@@ -1083,27 +1089,17 @@ def closeport(sPortName):
         oAppContext.error('Port {} already closed'.format(sPortName))
         return None
 
-##############################################################################
-#
-#   main 
-#
-##############################################################################
 
-if __name__ == '__main__':
-        
-    pName = os.path.basename(__file__)
-    pDir = os.path.dirname(os.path.abspath(__file__))
-    
-    deviceTypeUrl = ''
-    deviceUrl = ''
-    orgsUrl = ''
-    appsUrl = ''
-    devProfileUrl = ''
-    registerDeviceUrl = ''
-    getDeviceInfoUrl = ''
+def parse_arguments():
+    '''
+    Parse the command line to args
 
-    oAppContext = AppContext()
+    Args:
+        NA
 
+    Returns:
+        return args value object
+    '''
     optparser = argparse.ArgumentParser(
         description='MCCI Catena Provisioning')
     optparser.add_argument(
@@ -1182,7 +1178,25 @@ if __name__ == '__main__':
         type=str,
         help='Specify script name to load catena info')
 
-    opt = optparser.parse_args()
+    return optparser.parse_args()
+
+
+def main():
+    '''
+    Top level function of the provisioning process
+
+    Args:
+        NA
+
+    Returns:
+        NA
+    '''
+    global pName
+    global pDir
+
+    global oAppContext
+    oAppContext = AppContext()
+    opt = parse_arguments()
 
     if not opt.portname:
         oAppContext.fatal("Must specify -port")
@@ -1197,6 +1211,7 @@ if __name__ == '__main__':
         oAppContext.nBaudRate = opt.baudrate
 
     # Serial port Settings
+    global comPort
     comPort = serial.Serial()
     comPort.port = oAppContext.sPort
     comPort.baudrate = oAppContext.nBaudRate
@@ -1253,7 +1268,6 @@ if __name__ == '__main__':
     if oAppContext.fRegister:
         readCred = read_credentials()
 
-
         if len(readCred) != 3:
             path = os.path.join(pDir, '.mcci-catena-provision-chirpstack')
             os.chmod(path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
@@ -1278,3 +1292,13 @@ if __name__ == '__main__':
         oAppContext.error("Can't close port {}".format(oAppContext.sPort))
 
     oAppContext.exitchecks()
+
+##############################################################################
+#
+#   main 
+#
+##############################################################################
+
+if __name__ == '__main__':
+    main()
+    
